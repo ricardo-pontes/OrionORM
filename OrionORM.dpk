@@ -1,0 +1,58 @@
+package OrionORM;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS ON}
+{$RANGECHECKS ON}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$IMPLICITBUILD ON}
+
+requires
+  rtl,
+  dbrtl,
+  vcl,
+  fmx,
+  FireDAC,
+  FireDACCommonDriver,
+  FireDACCommon,
+  vclFireDAC,
+  FireDACIBDriver,
+  FireDACSqliteDriver,
+  fmxFireDAC;
+
+contains
+  Orion.ORM.Types in 'Orion.ORM.Types.pas',
+  Orion.ORM.Interfaces in 'Orion.ORM.Interfaces.pas',
+  Orion.ORM.Reflection in 'Orion.ORM.Reflection.pas',
+  Orion.ORM.DB.Interfaces in 'Orion.ORM.DB.Interfaces.pas',
+  Orion.ORM.Pagination in 'Orion.ORM.Pagination.pas',
+  Orion.ORM.Mapper in 'Orion.ORM.Mapper.pas',
+  Orion.ORM.Core in 'Orion.ORM.Core.pas',
+  Orion.ORM.DBConnection.FireDAC.Firebird in 'Orion.ORM.DBConnection.FireDAC.Firebird.pas',
+  Orion.ORM.DBConnection.FireDAC.Query in 'Orion.ORM.DBConnection.FireDAC.Query.pas',
+  Orion.ORM.DBConnection.FireDAC.SQLite in 'Orion.ORM.DBConnection.FireDAC.SQLite.pas',
+  Orion.ORM.Criteria in 'Orion.ORM.Criteria.pas',
+  Orion.ORM.Utils in 'Orion.ORM.Utils.pas';
+
+end.
+

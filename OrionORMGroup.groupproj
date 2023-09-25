@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{165B16B9-052A-4D2A-8F83-5A5389AA2536}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="OrionORM.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Samples\Project1.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="OrionORM">
+        <MSBuild Projects="OrionORM.dproj"/>
+    </Target>
+    <Target Name="OrionORM:Clean">
+        <MSBuild Projects="OrionORM.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="OrionORM:Make">
+        <MSBuild Projects="OrionORM.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Project1">
+        <MSBuild Projects="Samples\Project1.dproj"/>
+    </Target>
+    <Target Name="Project1:Clean">
+        <MSBuild Projects="Samples\Project1.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Project1:Make">
+        <MSBuild Projects="Samples\Project1.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="OrionORM;Project1"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="OrionORM:Clean;Project1:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="OrionORM:Make;Project1:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
