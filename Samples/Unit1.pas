@@ -38,9 +38,12 @@ type
     EditPostalCode: TLabeledEdit;
     Memo1: TMemo;
     Button2: TButton;
+    Button3: TButton;
+    LabeledEdit1: TLabeledEdit;
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
   private
     FOrionORM : iOrionORM<TPerson>;
   public
@@ -97,6 +100,22 @@ begin
   finally
     Persons.DisposeOf;
   end;
+end;
+
+procedure TForm1.Button3Click(Sender: TObject);
+var
+  Persons : TObjectList<TPerson>;
+  Person: TPerson;
+begin
+  Persons := FOrionORM.FindManyWithWhere(LabeledEdit1.Text);
+  try
+    Memo1.Lines.Clear;
+    for Person in Persons do
+      Memo1.Lines.Add(Format('ID: %d - Name: %s - Salary: %n - Street: %s - Number: %s - Neighborhood: %s - City: %s - PostalCode: %s', [Person.ID, Person.Name, Person.Salary, Person.Address.Street, Person.Address.Number, Person.Address.Neighborhood, Person.Address.City, Person.Address.PostalCode]));
+  finally
+    Persons.DisposeOf;
+  end;
+
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);

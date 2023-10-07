@@ -20,7 +20,7 @@ type
     FPagination : iOrionPagination;
   private
     procedure ValidateMapper;
-    procedure OpenDataset(var aDataset : iDataset; aMapper : iOrionORMMapper); overload;
+    procedure OpenDataset(var aDataset : iDataset; aMapper : iOrionORMMapper; aWhere : string = ''); overload;
     procedure OpenDataset(var aDataset : iDataset; aPrimaryKeys : TKeys; aPrimaryKeysValues : TKeysValues); overload;
     procedure OpenDataset(var aDataset : iDataset; aMapper, aChildMapper : iOrionORMMapper; aOwnerKeyValues : TKeysValues); overload;
     procedure SetOwnerKeyValues(aOwnerKeyFields : TKeys; var aOwnerKeyValues : TKeysValues; aDataset : iDataset);
@@ -137,8 +137,29 @@ begin
 end;
 
 function TOrionORMCore<T>.FindManyWithWhere(aWhere: string): TObjectList<T>;
+var
+  Dataset : iDataset;
+  Mappers : TMappers;
+  Mapper : iOrionORMMapper;
 begin
+  ValidateMapper;
+  OpenDataset(Dataset, FMapper, aWhere);
+  Result := TObjectList<T>.Create;
 
+  Dataset.First;
+  while not Dataset.Eof do
+  begin
+    var OwnerObject := FReflection.CreateClass(FMapper.ClassType) as T;
+    FReflection.DatasetToObject(Dataset, OwnerObject, FMapper);
+    Mappers := FMapper.GetOneToManyMappers;
+    if Length(Mappers) > 0 then
+    begin
+      for Mapper in Mappers do
+        LoadChildObjectList(Mapper, OwnerObject, Dataset);
+    end;
+    FReflection.IncObjectInList<T>(Result, OwnerObject);
+    Dataset.Next;
+  end;
 end;
 
 function TOrionORMCore<T>.FindOneWithWhere(aWhere: string): T;
@@ -200,11 +221,11 @@ begin
   aDataset.Open;
 end;
 
-procedure TOrionORMCore<T>.OpenDataset(var aDataset : iDataset; aMapper : iOrionORMMapper);
+procedure TOrionORMCore<T>.OpenDataset(var aDataset : iDataset; aMapper : iOrionORMMapper; aWhere : string);
 var
   Select : string;
 begin
-  Select := FCriteria.BuildSelect(aMapper);
+  Select := FCriteria.BuildSelect(aMapper, aWhere);
   aDataset := FDBConnection.NewDataset;
   aDataset.Statement(Select);
   aDataset.Open;

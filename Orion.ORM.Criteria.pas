@@ -15,8 +15,7 @@ type
   public
     class function New : iOrionCriteria;
 
-    function BuildSelect(aMapper : iOrionORMMapper) : string; overload;
-    function BuildSelect(aMapper : iOrionORMMapper; aWhere : string) : TSelects; overload;
+    function BuildSelect(aMapper : iOrionORMMapper; aWhere : string = '') : string; overload;
     function BuildSelect(aMapper : iOrionORMMapper; aKeys : TKeys; aValues : TKeysValues) : string; overload;
     function BuildDelete(aMapper : iOrionORMMapper) : TSelects;
   end;
@@ -56,11 +55,6 @@ begin
 
 end;
 
-function TOrionORMCriteria.BuildSelect(aMapper: iOrionORMMapper; aWhere: string): TSelects;
-begin
-
-end;
-
 function TOrionORMCriteria.BuildSelect(aMapper: iOrionORMMapper; aKeys: TKeys; aValues: TKeysValues): string;
 var
   Select : string;
@@ -75,13 +69,16 @@ begin
 
 end;
 
-function TOrionORMCriteria.BuildSelect(aMapper: iOrionORMMapper): string;
+function TOrionORMCriteria.BuildSelect(aMapper: iOrionORMMapper; aWhere : string): string;
 begin
   Result := '';
   if aMapper.Items.Count = 0 then
     Exit;
 
   Result := BuildBaseSelect(aMapper);
+
+  if aWhere <> '' then
+    Result := Result + ' WHERE ' + aWhere;
 end;
 
 function TOrionORMCriteria.GetWhereClause(aKeys: TKeys; aValues: TKeysValues): string;

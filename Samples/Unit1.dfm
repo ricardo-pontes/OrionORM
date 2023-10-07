@@ -17,7 +17,7 @@ object Form1: TForm1
     Top = 8
     Width = 75
     Height = 25
-    Caption = 'Button1'
+    Caption = 'FindByKeys'
     TabOrder = 0
     OnClick = Button1Click
   end
@@ -128,8 +128,28 @@ object Form1: TForm1
     Top = 8
     Width = 75
     Height = 25
-    Caption = 'Button1'
+    Caption = 'FindAll'
     TabOrder = 11
     OnClick = Button2Click
+  end
+  object Button3: TButton
+    Left = 352
+    Top = 8
+    Width = 106
+    Height = 25
+    Caption = 'Find with Where'
+    TabOrder = 12
+    OnClick = Button3Click
+  end
+  object LabeledEdit1: TLabeledEdit
+    Left = 192
+    Top = 8
+    Width = 154
+    Height = 25
+    EditLabel.Width = 11
+    EditLabel.Height = 15
+    EditLabel.Caption = 'ID'
+    TabOrder = 13
+    Text = ''
   end
 end
