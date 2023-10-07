@@ -11,7 +11,6 @@ object Form1: TForm1
   Font.Name = 'Segoe UI'
   Font.Style = []
   OnCreate = FormCreate
-  OnDestroy = FormDestroy
   TextHeight = 15
   object Button1: TButton
     Left = 545
@@ -116,5 +115,12 @@ object Form1: TForm1
     EditLabel.Caption = 'Postal Code'
     TabOrder = 9
     Text = ''
+  end
+  object Memo1: TMemo
+    Left = 24
+    Top = 240
+    Width = 585
+    Height = 185
+    TabOrder = 10
   end
 end

@@ -2,8 +2,12 @@ unit Entity;
 
 interface
 
+uses
+  System.Generics.Collections;
+
 type
   TAddress = class;
+  TContact = class;
 
   TPerson = class
   private
@@ -12,6 +16,7 @@ type
     FSalary: Double;
     FActive: boolean;
     FAddress: TAddress;
+    FContacts: TObjectList<TContact>;
 
   public
     constructor Create;
@@ -22,6 +27,7 @@ type
     property Salary: Double read FSalary write FSalary;
     property Active: boolean read FActive write FActive;
     property Address: TAddress read FAddress write FAddress;
+    property Contacts: TObjectList<TContact> read FContacts write FContacts;
   end;
 
   TAddress = class
@@ -42,6 +48,17 @@ type
     property PostalCode: string read FPostalCode write FPostalCode;
   end;
 
+  TContact = class
+  private
+    FID: integer;
+    FPersonID: integer;
+    FPhoneNumber: string;
+  published
+    property ID: integer read FID write FID;
+    property PersonID: integer read FPersonID write FPersonID;
+    property PhoneNumber: string read FPhoneNumber write FPhoneNumber;
+  end;
+
 implementation
 
 { TPerson }
@@ -49,11 +66,13 @@ implementation
 constructor TPerson.Create;
 begin
   FAddress := TAddress.Create;
+  FContacts := TObjectList<TContact>.Create;
 end;
 
 destructor TPerson.Destroy;
 begin
   FAddress.DisposeOf;
+  FContacts.DisposeOf;
   inherited;
 end;
 

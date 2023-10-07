@@ -19,8 +19,9 @@ type
 
   TAssociation = record
     &Type : TAssociationType;
-    Keys : TKeys;
-    class function Create(aType : TAssociationType; aKeys : TKeys) : TAssociation; static;
+    OwnerKeys : TKeys;
+    ChildKeys : TKeys;
+    class function Create(aType : TAssociationType; aOwnerKeys, aChildKeys : TKeys) : TAssociation; static;
   end;
 
   TMapperValue = record
@@ -29,8 +30,9 @@ type
     Constraints : TConstraints;
     Mapper : iOrionORMMapper;
     Association : TAssociation;
+    class function Create(aEntityFieldName, aTableFieldName : string) : TMapperValue; overload; static;
     class function Create(aEntityFieldName, aTableFieldName : string; aConstraints : TConstraints) : TMapperValue; overload; static;
-    class function Create(aEntityFieldName, aTableFieldName : string; aConstraints : TConstraints; aMapper : iOrionORMMapper; aAssociation : TAssociation) : TMapperValue; overload; static;
+    class function Create(aEntityFieldName : string; aMapper : iOrionORMMapper; aAssociation : TAssociation) : TMapperValue; overload; static;
   end;
 
   iOrionORM<T:class, constructor> = interface
@@ -38,8 +40,7 @@ type
     procedure Mapper(aValue : iOrionORMMapper); overload;
     function Mapper : iOrionORMMapper; overload;
     function Find : TObjectList<T>; overload;
-    function Find(aID : int64) : T; overload;
-    function Find(aID : string) : T; overload;
+    function Find(aPrimaryKeyValues : TKeysValues) : T; overload;
     function FindOneWithWhere(aWhere : string) : T;
     function FindManyWithWhere(aWhere : string) : TObjectList<T>;
     procedure Save(aValue : T);
@@ -54,13 +55,18 @@ type
     function GetTableName : string;
     property TableName: string read GetTableName write SetTableName;
 
+    procedure SetClassType(const aValue : TClass);
+    function GetClassType : TClass;
+    property ClassType : TClass read GetClassType write SetClassType;
+
     procedure Add(aMapperValue : TMapperValue);
-    procedure ClassType(const aValue : TClass); overload;
-    function ClassType : TClass; overload;
     function ContainsPrimaryKey : boolean;
     function ContainsEmptyEntityFieldName : boolean;
     function ContainsEmptyTableFieldName : boolean;
     function ContainsEmptyMapper : boolean;
+    function GetAssociationOwnerKeyFields (aMapper : iOrionORMMapper): TKeys;
+    function GetAssociationChildKeyFields(aMapper : iOrionORMMapper): TKeys;
+    function GetAssociationObjectListFieldName(aMapper : iOrionORMMapper) : string;
     function GetPrimaryKeyEntityFieldName : TKeys;
     function GetPrimaryKeyTableFieldName : TKeys;
     function GetOneToManyMappers : TMappers;
@@ -93,12 +99,11 @@ implementation
 
 { TMapperValue }
 
-class function TMapperValue.Create(aEntityFieldName, aTableFieldName: string; aConstraints: TConstraints;
-  aMapper: iOrionORMMapper; aAssociation : TAssociation): TMapperValue;
+class function TMapperValue.Create(aEntityFieldName : string; aMapper : iOrionORMMapper; aAssociation : TAssociation): TMapperValue;
 begin
   Result.EntityFieldName := aEntityFieldName;
-  Result.TableFieldName := aTableFieldName;
-  Result.Constraints := aConstraints;
+  Result.TableFieldName := '';
+  Result.Constraints := [];
   Result.Mapper := aMapper;
   Result.Association := aAssociation;
 end;
@@ -111,12 +116,21 @@ begin
   Result.Mapper := nil;
 end;
 
+class function TMapperValue.Create(aEntityFieldName, aTableFieldName: string): TMapperValue;
+begin
+  Result.EntityFieldName := aEntityFieldName;
+  Result.TableFieldName := aTableFieldName;
+  Result.Constraints := [];
+  Result.Mapper := nil;
+end;
+
 { TAssociation }
 
-class function TAssociation.Create(aType: TAssociationType; aKeys: TKeys): TAssociation;
+class function TAssociation.Create(aType : TAssociationType; aOwnerKeys, aChildKeys : TKeys) : TAssociation;
 begin
   Result.&Type := aType;
-  Result.Keys := aKeys;
+  Result.OwnerKeys := aOwnerKeys;
+  Result.ChildKeys := aChildKeys;
 end;
 
 end.

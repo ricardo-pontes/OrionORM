@@ -20,14 +20,15 @@ type
     function GetPagination : iOrionPagination;
     procedure SetTableName(const aValue : string);
     function GetTableName : string;
+    procedure SetClassType(const aValue : TClass); overload;
+    function GetClassType : TClass; overload;
   public
     constructor Create;
     destructor Destroy; override;
     class function New : iOrionORMMapper;
 
     procedure Add(aMapperValue : TMapperValue); overload;
-    procedure ClassType(const aValue : TClass); overload;
-    function ClassType : TClass; overload;
+    property ClassTyp : TClass read GetClassType write SetClassType;
     function ContainsPrimaryKey : boolean;
     function ContainsEmptyEntityFieldName : boolean;
     function ContainsEmptyTableFieldName : boolean;
@@ -35,7 +36,9 @@ type
     function GetPrimaryKeyEntityFieldName : TKeys;
     function GetPrimaryKeyTableFieldName : TKeys;
     function GetOneToManyMappers : TMappers;
-
+    function GetAssociationOwnerKeyFields (aMapper : iOrionORMMapper): TKeys;
+    function GetAssociationChildKeyFields(aMapper : iOrionORMMapper): TKeys;
+    function GetAssociationObjectListFieldName(aMapper : iOrionORMMapper) : string;
     function Items : TList<TMapperValue>;
   public
     property TableName: string read GetTableName write SetTableName;
@@ -53,12 +56,55 @@ begin
   FItens.Add(aMapperValue);
 end;
 
-function TOrionMapper.ClassType: TClass;
+function TOrionMapper.GetAssociationChildKeyFields(aMapper: iOrionORMMapper): TKeys;
+var
+  MapperValue: TMapperValue;
+begin
+  for MapperValue in FItens do
+  begin
+    if MapperValue.Mapper <> aMapper then
+      Continue;
+
+    Result := MapperValue.Association.ChildKeys;
+    Exit;
+  end;
+
+end;
+
+function TOrionMapper.GetAssociationObjectListFieldName(aMapper: iOrionORMMapper): string;
+var
+  MapperValue: TMapperValue;
+begin
+  for MapperValue in FItens do
+  begin
+    if MapperValue.Mapper <> aMapper then
+      Continue;
+
+    Result := MapperValue.EntityFieldName;
+    Exit;
+  end;
+end;
+
+function TOrionMapper.GetAssociationOwnerKeyFields(aMapper : iOrionORMMapper): TKeys;
+var
+  MapperValue: TMapperValue;
+begin
+  for MapperValue in FItens do
+  begin
+    if MapperValue.Mapper <> aMapper then
+      Continue;
+
+    Result := MapperValue.Association.OwnerKeys;
+    Exit;
+  end;
+end;
+
+function TOrionMapper.GetClassType: TClass;
 begin
   Result := FClassType;
 end;
 
-procedure TOrionMapper.ClassType(const aValue: TClass);
+procedure TOrionMapper.SetClassType(const aValue: TClass);
 begin
   FClassType := aValue;
 end;
@@ -100,7 +146,7 @@ begin
   Result := False;
   for Mapper in FItens do
   begin
-    if Mapper.TableFieldName.Trim.IsEmpty then
+    if (Mapper.TableFieldName.Trim.IsEmpty) and (Mapper.Mapper = nil) then
     begin
       Result := True;
       Exit;

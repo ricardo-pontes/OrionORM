@@ -38,10 +38,8 @@ end;
 function TOrionORMCriteria.BuildSelect(aMapper: iOrionORMMapper; aKeys: TKeys; aValues: TKeysValues): string;
 var
   MapperValue: TMapperValue;
-  I: Integer;
   Select : string;
   AssociationMappers : array of iOrionORMMapper;
-  Mapper: iOrionORMMapper;
 begin
   Select := '';
   if aMapper.Items.Count = 0 then

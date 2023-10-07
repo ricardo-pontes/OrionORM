@@ -13,7 +13,7 @@ uses
   Vcl.Forms,
   Vcl.Dialogs,
 
-  Orion.ORM.Core,
+  Orion.ORM,
   Orion.ORM.Mapper,
   Orion.ORM.Interfaces,
   Orion.ORM.DB.Interfaces,
@@ -35,11 +35,11 @@ type
     EditNeighborhood: TLabeledEdit;
     EditCity: TLabeledEdit;
     EditPostalCode: TLabeledEdit;
+    Memo1: TMemo;
     procedure FormCreate(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure Button1Click(Sender: TObject);
   private
-    FOrionCore : TOrionORMCore<TPerson>;
+    FOrionORM : iOrionORM<TPerson>;
   public
     { Public declarations }
   end;
@@ -54,8 +54,9 @@ implementation
 procedure TForm1.Button1Click(Sender: TObject);
 var
   Person : TPerson;
+  Contact : TContact;
 begin
-  Person := FOrionCore.Find([1]);
+  Person := FOrionORM.Find([1]);
   try
     EditID.Text := Person.ID.ToString;
     EditName.Text := Person.Name;
@@ -70,6 +71,11 @@ begin
     EditNeighborhood.Text := Person.Address.Neighborhood;
     EditCity.Text := Person.Address.City;
     EditPostalCode.Text := Person.Address.PostalCode;
+
+    Memo1.Lines.Clear;
+    for Contact in Person.Contacts do
+      Memo1.Lines.Add(Format('ID: %d - PersonID: %d - PhoneNumber: %s', [Contact.ID, Contact.PersonID, Contact.PhoneNumber]));
+
   finally
     Person.DisposeOf;
   end;
@@ -78,41 +84,32 @@ end;
 procedure TForm1.FormCreate(Sender: TObject);
 var
   DBConnection : iDBConnection;
-  Dataset : iDataset;
-  Script : string;
 begin
   DBConnection := TOrionORMDBConnectionFiredacSQLite.New;
   DBConnection.Configurations(ExtractFileDir(GetCurrentDir) + 'dbteste.sqlite3', '', '', '', 0);
-
-  Script := ' CREATE TABLE IF NOT EXISTS PEOPLES ('
-              + 'PEOPLE_ID INTEGER NOT NULL PRIMARY KEY,'
-              + 'PEOPLE_NAME VARCHAR(200), '
-              + 'PEOPLE_SALARY FLOAT, '
-              + 'PEOPLE_ACTIVE BOOLEAN '
-              + ')';
-  Dataset := DBConnection.NewDataset;
-  Dataset.Statement(Script);
-  Dataset.ExecSQL;
-
-  FOrionCore := TOrionORMCore<TPerson>.Create(TOrionORMCriteria.New, DBConnection);
+  FOrionORM := TOrionORM<TPerson>.New(DBConnection);
   var Mapper := TOrionMapper.New;
-  Mapper.TableName := 'PEOPLES';
-  Mapper.ClassType(TPerson);
-  Mapper.Add(TMapperValue.Create('ID', 'PEOPLE_ID', [PrimaryKey, AutoInc]));
-  Mapper.Add(TMapperValue.Create('Name', 'PEOPLE_NAME', []));
-  Mapper.Add(TMapperValue.Create('Salary', 'PEOPLE_SALARY', []));
-  Mapper.Add(TMapperValue.Create('Active', 'PEOPLE_ACTIVE', []));
-  Mapper.Add(TMapperValue.Create('Address.Street', 'PEOPLE_STREET', []));
-  Mapper.Add(TMapperValue.Create('Address.Number', 'PEOPLE_NUMBER', []));
-  Mapper.Add(TMapperValue.Create('Address.Neighborhood', 'PEOPLE_NEIGHBORHOOD', []));
-  Mapper.Add(TMapperValue.Create('Address.City', 'PEOPLE_CITY', []));
-  Mapper.Add(TMapperValue.Create('Address.PostalCode', 'PEOPLE_POSTAL_CODE', []));
-  FOrionCore.Mapper(Mapper);
-end;
+  var MapperContacts := TOrionMapper.New;
 
-procedure TForm1.FormDestroy(Sender: TObject);
-begin
-  FOrionCore.DisposeOf;
+  MapperContacts.TableName := 'CONTACTS';
+  MapperContacts.ClassType := TContact;
+  MapperContacts.Add(TMapperValue.Create('ID', 'PC_ID', [PrimaryKey, AutoInc]));
+  MapperContacts.Add(TMapperValue.Create('PersonID', 'PC_PEOPLE_ID'));
+  MapperContacts.Add(TMapperValue.Create('PhoneNumber', 'PC_PHONE_NUMBER'));
+
+  Mapper.TableName := 'PEOPLES';
+  Mapper.ClassType := TPerson;
+  Mapper.Add(TMapperValue.Create('ID', 'PEOPLE_ID', [PrimaryKey, AutoInc]));
+  Mapper.Add(TMapperValue.Create('Name', 'PEOPLE_NAME'));
+  Mapper.Add(TMapperValue.Create('Salary', 'PEOPLE_SALARY'));
+  Mapper.Add(TMapperValue.Create('Active', 'PEOPLE_ACTIVE'));
+  Mapper.Add(TMapperValue.Create('Address.Street', 'PEOPLE_STREET'));
+  Mapper.Add(TMapperValue.Create('Address.Number', 'PEOPLE_NUMBER'));
+  Mapper.Add(TMapperValue.Create('Address.Neighborhood', 'PEOPLE_NEIGHBORHOOD'));
+  Mapper.Add(TMapperValue.Create('Address.City', 'PEOPLE_CITY'));
+  Mapper.Add(TMapperValue.Create('Address.PostalCode', 'PEOPLE_POSTAL_CODE'));
+  Mapper.Add(TMapperValue.Create('Contacts', MapperContacts, TAssociation.Create(OneToMany, ['PEOPLE_ID'], ['PC_PEOPLE_ID'])));
+  FOrionORM.Mapper(Mapper);
 end;
 
 end.
