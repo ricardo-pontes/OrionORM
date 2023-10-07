@@ -90,6 +90,7 @@ type
 
   iOrionCriteria = interface
     ['{E3B6FDF1-FBA5-4B65-B844-17CAC51B2535}']
+    function BuildSelect(aMapper : iOrionORMMapper) : string; overload;
     function BuildSelect(aMapper : iOrionORMMapper; aWhere : string) : TSelects; overload;
     function BuildSelect(aMapper : iOrionORMMapper; aKeys : TKeys; aValues : TKeysValues) : string; overload;
     function BuildDelete(aMapper : iOrionORMMapper) : TSelects;

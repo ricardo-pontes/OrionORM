@@ -24,7 +24,8 @@ type
   public
     procedure DatasetToObject(aDataset : iDataset; aObject : TObject; aMapper : iOrionORMMapper);
     function CreateClass(aClassType : TClass): TObject;
-    procedure IncObjectInList(aEntityFieldName: string; aOwnerObjectList, aChildObject: TObject);
+    procedure IncObjectInList(aEntityFieldName: string; aOwnerObjectList, aChildObject: TObject); overload;
+    procedure IncObjectInList<T:class>(aObjectList : TObjectList<T>; aObject: TObject); overload;
     procedure ClearList(aEntityFieldName: string; aObject : TObject);
   end;
 
@@ -140,6 +141,11 @@ begin
       Result.Obj := aObject;
   end;
 
+end;
+
+procedure TOrionORMReflection.IncObjectInList<T>(aObjectList: TObjectList<T>; aObject: TObject);
+begin
+  aObjectList.Add(aObject);
 end;
 
 procedure TOrionORMReflection.IncObjectInList(aEntityFieldName: string; aOwnerObjectList, aChildObject: TObject);

@@ -20,6 +20,11 @@ type
     FPagination : iOrionPagination;
   private
     procedure ValidateMapper;
+    procedure OpenDataset(var aDataset : iDataset; aMapper : iOrionORMMapper); overload;
+    procedure OpenDataset(var aDataset : iDataset; aPrimaryKeys : TKeys; aPrimaryKeysValues : TKeysValues); overload;
+    procedure OpenDataset(var aDataset : iDataset; aMapper, aChildMapper : iOrionORMMapper; aOwnerKeyValues : TKeysValues); overload;
+    procedure SetOwnerKeyValues(aOwnerKeyFields : TKeys; var aOwnerKeyValues : TKeysValues; aDataset : iDataset);
+    procedure LoadChildObjectList(aChildMapper : iOrionORMMapper; aOwnerObject : TObject; aOwnerDataset : iDataset);
   public
     constructor Create(aCriteria : iOrionCriteria; aDBConnection : iDBConnection); overload;
     constructor Create(aCriteria : iOrionCriteria; aDBConnection : iDBConnection; aPagination : iOrionPagination); overload;
@@ -87,58 +92,48 @@ end;
 
 function TOrionORMCore<T>.Find(aPrimaryKeyValues : TKeysValues): T;
 var
-  Dataset, OneToManyDataset : iDataset;
-  PrimaryKeys, OwnerKeyFields : TKeys;
-  OwnerKeyValues : TKeysValues;
-  Select : string;
-  Mappers : TMappers;
+  Dataset : iDataset;
+  PrimaryKeys : TKeys;
+  OneToManyMappers : TMappers;
   Mapper : iOrionORMMapper;
-  Key: string;
 begin
   ValidateMapper;
-  Dataset := FDBConnection.NewDataset;
-
   PrimaryKeys := FMapper.GetPrimaryKeyTableFieldName;
-  Select := FCriteria.BuildSelect(FMapper, PrimaryKeys, aPrimaryKeyValues);
-
-  Dataset.Statement(Select);
-  Dataset.Open;
-
+  OpenDataset(Dataset, PrimaryKeys, aPrimaryKeyValues);
   Result := FReflection.CreateClass(FMapper.ClassType) as T;
   FReflection.DatasetToObject(Dataset, Result, FMapper);
-  Mappers := FMapper.GetOneToManyMappers;
-  if Length(Mappers) > 0 then
+  OneToManyMappers := FMapper.GetOneToManyMappers;
+  if Length(OneToManyMappers) > 0 then
   begin
-    for Mapper in Mappers do
-    begin
-      OneToManyDataset := FDBConnection.NewDataset;
-      OwnerKeyFields := FMapper.GetAssociationOwnerKeyFields(Mapper);
-      for Key in OwnerKeyFields do
-      begin
-        SetLength(OwnerKeyValues, Length(OwnerKeyValues) + 1);
-        OwnerKeyValues[Pred(Length(OwnerKeyValues))] := Dataset.FieldByName(Key).AsVariant;
-      end;
-
-      Select := FCriteria.BuildSelect(Mapper, FMapper.GetAssociationChildKeyFields(Mapper), OwnerKeyValues);
-      OneToManyDataset.Statement(Select);
-      OneToManyDataset.Open;
-
-      FReflection.ClearList(FMapper.GetAssociationObjectListFieldName(Mapper), Result);
-      OneToManyDataset.First;
-      while not OneToManyDataset.Eof do
-      begin
-        var ChildObject := FReflection.CreateClass(Mapper.ClassType);
-        FReflection.DatasetToObject(OneToManyDataset, ChildObject, Mapper);
-        FReflection.IncObjectInList(FMapper.GetAssociationObjectListFieldName(Mapper), Result, ChildObject);
-        OneToManyDataset.Next;
-      end;
-    end;
+    for Mapper in OneToManyMappers do
+      LoadChildObjectList(Mapper, Result, Dataset);
   end;
 end;
 
 function TOrionORMCore<T>.Find: TObjectList<T>;
+var
+  Dataset : iDataset;
+  Mappers : TMappers;
+  Mapper : iOrionORMMapper;
 begin
+  ValidateMapper;
+  OpenDataset(Dataset, FMapper);
   Result := TObjectList<T>.Create;
+
+  Dataset.First;
+  while not Dataset.Eof do
+  begin
+    var OwnerObject := FReflection.CreateClass(FMapper.ClassType) as T;
+    FReflection.DatasetToObject(Dataset, OwnerObject, FMapper);
+    Mappers := FMapper.GetOneToManyMappers;
+    if Length(Mappers) > 0 then
+    begin
+      for Mapper in Mappers do
+        LoadChildObjectList(Mapper, OwnerObject, Dataset);
+    end;
+    FReflection.IncObjectInList<T>(Result, OwnerObject);
+    Dataset.Next;
+  end;
 end;
 
 function TOrionORMCore<T>.FindManyWithWhere(aWhere: string): TObjectList<T>;
@@ -149,6 +144,26 @@ end;
 function TOrionORMCore<T>.FindOneWithWhere(aWhere: string): T;
 begin
 
+end;
+
+procedure TOrionORMCore<T>.LoadChildObjectList(aChildMapper : iOrionORMMapper; aOwnerObject : TObject; aOwnerDataset : iDataset);
+var
+  OwnerKeyFields : TKeys;
+  OwnerKeyValues : TKeysValues;
+  Dataset : iDataset;
+begin
+  OwnerKeyFields := FMapper.GetAssociationOwnerKeyFields(aChildMapper);
+  SetOwnerKeyValues(OwnerKeyFields, OwnerKeyValues, aOwnerDataset);
+  OpenDataset(Dataset, FMapper, aChildMapper, OwnerKeyValues);
+  FReflection.ClearList(FMapper.GetAssociationObjectListFieldName(aChildMapper), aOwnerObject);
+  Dataset.First;
+  while not Dataset.Eof do
+  begin
+    var ChildObject := FReflection.CreateClass(aChildMapper.ClassType);
+    FReflection.DatasetToObject(Dataset, ChildObject, aChildMapper);
+    FReflection.IncObjectInList(FMapper.GetAssociationObjectListFieldName(aChildMapper), aOwnerObject, ChildObject);
+    Dataset.Next;
+  end;
 end;
 
 procedure TOrionORMCore<T>.Mapper(aValue: iOrionORMMapper);
@@ -165,9 +180,50 @@ begin
   Result := FMapper;
 end;
 
+procedure TOrionORMCore<T>.OpenDataset(var aDataset: iDataset; aPrimaryKeys: TKeys; aPrimaryKeysValues: TKeysValues);
+var
+  Select : string;
+begin
+  aDataset := FDBConnection.NewDataset;
+  Select := FCriteria.BuildSelect(FMapper, aPrimaryKeys, aPrimaryKeysValues);
+  aDataset.Statement(Select);
+  aDataset.Open;
+end;
+
+procedure TOrionORMCore<T>.OpenDataset(var aDataset: iDataset; aMapper, aChildMapper: iOrionORMMapper; aOwnerKeyValues : TKeysValues);
+var
+  Select : string;
+begin
+  Select := FCriteria.BuildSelect(aChildMapper, aMapper.GetAssociationChildKeyFields(aChildMapper), aOwnerKeyValues);
+  aDataset := FDBConnection.NewDataset;
+  aDataset.Statement(Select);
+  aDataset.Open;
+end;
+
+procedure TOrionORMCore<T>.OpenDataset(var aDataset : iDataset; aMapper : iOrionORMMapper);
+var
+  Select : string;
+begin
+  Select := FCriteria.BuildSelect(aMapper);
+  aDataset := FDBConnection.NewDataset;
+  aDataset.Statement(Select);
+  aDataset.Open;
+end;
+
 procedure TOrionORMCore<T>.Save(aValue: T);
 begin
 
+end;
+
+procedure TOrionORMCore<T>.SetOwnerKeyValues(aOwnerKeyFields : TKeys; var aOwnerKeyValues : TKeysValues; aDataset : iDataset);
+var
+  Key : string;
+begin
+  for Key in aOwnerKeyFields do
+  begin
+    SetLength(aOwnerKeyValues, Length(aOwnerKeyValues) + 1);
+    aOwnerKeyValues[Pred(Length(aOwnerKeyValues))] := aDataset.FieldByName(Key).AsVariant;
+  end;
 end;
 
 procedure TOrionORMCore<T>.ValidateMapper;

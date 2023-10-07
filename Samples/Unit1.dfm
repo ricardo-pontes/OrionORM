@@ -123,4 +123,13 @@ object Form1: TForm1
     Height = 185
     TabOrder = 10
   end
+  object Button2: TButton
+    Left = 464
+    Top = 8
+    Width = 75
+    Height = 25
+    Caption = 'Button1'
+    TabOrder = 11
+    OnClick = Button2Click
+  end
 end

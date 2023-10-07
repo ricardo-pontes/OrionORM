@@ -53,7 +53,7 @@ type
     FID: integer;
     FPersonID: integer;
     FPhoneNumber: string;
-  published
+  public
     property ID: integer read FID write FID;
     property PersonID: integer read FPersonID write FPersonID;
     property PhoneNumber: string read FPhoneNumber write FPhoneNumber;
