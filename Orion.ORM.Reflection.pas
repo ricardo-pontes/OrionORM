@@ -7,10 +7,12 @@ uses
   System.Classes,
   System.Rtti,
   System.TypInfo,
+  System.Variants,
   System.Generics.Collections,
   Orion.ORM.DB.Interfaces,
   Orion.ORM.Interfaces,
-  Orion.ORM.Types;
+  Orion.ORM.Types,
+  Data.DB;
 
 type
   TGetProperty = record
@@ -24,9 +26,13 @@ type
   public
     procedure DatasetToObject(aDataset : iDataset; aObject : TObject; aMapper : iOrionORMMapper);
     function CreateClass(aClassType : TClass): TObject;
+    procedure ClearList(aEntityFieldName: string; aObject : TObject);
     procedure IncObjectInList(aEntityFieldName: string; aOwnerObjectList, aChildObject: TObject); overload;
     procedure IncObjectInList<T:class>(aObjectList : TObjectList<T>; aObject: TObject); overload;
-    procedure ClearList(aEntityFieldName: string; aObject : TObject);
+    function GetPrimaryKeyEntityFieldValues(aKeys : TKeys; aObject : TObject) : TKeysValues;
+    function GetChildObjectList (aMapper, aChildMapper: iOrionORMMapper; aOwnerObject: TObject): TObjectList<TObject>;
+    procedure ObjectToDataset(aObject : TObject; aDataset : iDataset; aMapper : iOrionORMMapper);
+    procedure RefreshEntityPrimaryKeysValues(aDataset: iDataset; aObject: TObject; aMapper : iOrionORMMapper);
   end;
 
 
@@ -105,6 +111,36 @@ begin
   end;
 end;
 
+function TOrionORMReflection.GetChildObjectList(aMapper, aChildMapper: iOrionORMMapper; aOwnerObject: TObject): TObjectList<TObject>;
+var
+  MapperValue: TMapperValue;
+  ResultGetProperty : TGetProperty;
+begin
+  for MapperValue in aMapper.Items do
+  begin
+    if MapperValue.Mapper <> aChildMapper then
+      Continue;
+
+    ResultGetProperty := GetProperty(aOwnerObject, MapperValue.EntityFieldName);
+    Result := TObjectList<TObject>(ResultGetProperty.Prop.GetValue(Pointer(ResultGetProperty.Obj)).AsObject);
+    Exit;
+  end;
+end;
+
+function TOrionORMReflection.GetPrimaryKeyEntityFieldValues(aKeys : TKeys; aObject : TObject) : TKeysValues;
+var
+  Key: string;
+  ResultGetProperty : TGetProperty;
+begin
+  Result := [];
+  for Key in aKeys do
+  begin
+    ResultGetProperty := GetProperty(aObject, Key);
+    SetLength(Result, Length(Result) + 1);
+    Result[Pred(Length(Result))] := ResultGetProperty.Prop.GetValue(Pointer(aObject)).AsVariant;
+  end;
+end;
+
 function TOrionORMReflection.GetProperty(aObject : TObject; aEntityFieldName : string) : TGetProperty;
 var
   RttiContext : TRttiContext;
@@ -146,6 +182,177 @@ end;
 procedure TOrionORMReflection.IncObjectInList<T>(aObjectList: TObjectList<T>; aObject: TObject);
 begin
   aObjectList.Add(aObject);
+end;
+
+procedure TOrionORMReflection.ObjectToDataset(aObject: TObject; aDataset: iDataset; aMapper: iOrionORMMapper);
+var
+  RttiProperty : TGetProperty;
+  MapperValue: TMapperValue;
+  Constraint: TConstraint;
+  IsAutInc : boolean;
+  IsNullIfEmpty : boolean;
+  IsIgnoreOnSave : boolean;
+begin
+  for MapperValue in aMapper.Items do
+  begin
+    IsAutInc := False;
+    IsNullIfEmpty := False;
+    IsIgnoreOnSave := False;
+    if MapperValue.TableFieldName = '' then
+      Continue;
+
+    for Constraint in MapperValue.Constraints do
+    begin
+      if Constraint = AutoInc then
+      begin
+        IsAutInc := True;
+        aDataset.FieldByName(MapperValue.TableFieldName).AutoGenerateValue := arAutoInc;
+        aDataset.FieldByName(MapperValue.TableFieldName).Required := False;
+      end;
+
+      if Constraint = NullIfEmpty then
+        IsNullIfEmpty := True;
+
+      if Constraint = IgnoreOnSave then
+        IsIgnoreOnSave := True;
+    end;
+
+    if IsIgnoreOnSave or IsAutInc then
+      Continue;
+
+    RttiProperty := GetProperty(aObject, MapperValue.EntityFieldName);
+    if not Assigned(RttiProperty.Prop) then
+      raise OrionORMException.Create('Entity Field Name ' + MapperValue.EntityFieldName + ' not found.');
+
+    if not aDataset.FieldExist(MapperValue.TableFieldName) then
+      raise OrionORMException.Create('Table Field Name ' + MapperValue.TableFieldName + ' not found.');
+
+    case RttiProperty.Prop.PropertyType.TypeKind of
+      tkUnknown: ;
+      tkInteger:
+      begin
+        if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsInteger = 0) then
+          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+        else
+          aDataset.FieldByName(MapperValue.TableFieldName).AsInteger := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsInteger;
+      end;
+      tkChar:
+      begin
+        if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString = '') then
+          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+        else
+         aDataset.FieldByName(MapperValue.TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
+      end;
+      tkEnumeration: aDataset.FieldByName(MapperValue.TableFieldName).AsBoolean := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsBoolean;
+      tkFloat:
+      begin
+        if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsExtended = 0) then
+          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+        else
+          aDataset.FieldByName(MapperValue.TableFieldName).AsExtended := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsExtended;
+      end;
+      tkString:
+      begin
+        if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString = '') then
+          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+        else
+          aDataset.FieldByName(MapperValue.TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
+      end;
+      tkSet: ;
+      tkClass: ;
+      tkMethod: ;
+      tkWChar:
+      begin
+        if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString = '') then
+          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+        else
+          aDataset.FieldByName(MapperValue.TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
+      end;
+      tkLString:
+      begin
+        if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString = '') then
+          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+        else
+          aDataset.FieldByName(MapperValue.TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
+      end;
+      tkWString:
+      begin
+        if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString = '') then
+          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+        else
+          aDataset.FieldByName(MapperValue.TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
+      end;
+      tkVariant: ;
+      tkArray: ;
+      tkRecord: ;
+      tkInterface: ;
+      tkInt64:
+      begin
+        if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsInt64 = 0) then
+          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+        else
+          aDataset.FieldByName(MapperValue.TableFieldName).AsLargeInt := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsInt64;
+      end;
+      tkDynArray: ;
+      tkUString:
+      begin
+        if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString = '') then
+          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+        else
+          aDataset.FieldByName(MapperValue.TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
+      end;
+      tkClassRef: ;
+      tkPointer: ;
+      tkProcedure: ;
+      tkMRecord: ;
+    end;
+  end;
+
+end;
+
+procedure TOrionORMReflection.RefreshEntityPrimaryKeysValues(aDataset: iDataset; aObject: TObject; aMapper : iOrionORMMapper);
+var
+  Keys : TKeys;
+  KeysTableField : TKeys;
+  Key: string;
+  RttiProperty : TGetProperty;
+  I: Integer;
+//  MapperValue : TMapperValue;
+begin
+  Keys := aMapper.GetPrimaryKeyEntityFieldName;
+  KeysTableField := aMapper.GetPrimaryKeyTableFieldName;
+  for I := 0 to Pred(Length(Keys)) do
+  begin
+//    MapperValue := aMapper.GetMapperValue(Keys[I]);
+    RttiProperty := GetProperty(aObject, Keys[I]);
+
+    case RttiProperty.Prop.PropertyType.TypeKind of
+      tkUnknown: ;
+      tkInteger: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(KeysTableField[I]).AsInteger);
+      tkChar: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(KeysTableField[I]).AsString);
+      tkEnumeration: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(KeysTableField[I]).AsBoolean);
+      tkFloat: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(KeysTableField[I]).AsExtended);
+      tkString: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(KeysTableField[I]).AsString);
+      tkSet: ;
+      tkClass: ;
+      tkMethod: ;
+      tkWChar: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(KeysTableField[I]).AsString);
+      tkLString: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(KeysTableField[I]).AsString);
+      tkWString: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(KeysTableField[I]).AsString);
+      tkVariant: ;
+      tkArray: ;
+      tkRecord: ;
+      tkInterface: ;
+      tkInt64: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(KeysTableField[I]).AsLargeInt);
+      tkDynArray: ;
+      tkUString: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(KeysTableField[I]).AsString);
+      tkClassRef: ;
+      tkPointer: ;
+      tkProcedure: ;
+      tkMRecord: ;
+    end;
+  end;
+
 end;
 
 procedure TOrionORMReflection.IncObjectInList(aEntityFieldName: string; aOwnerObjectList, aChildObject: TObject);

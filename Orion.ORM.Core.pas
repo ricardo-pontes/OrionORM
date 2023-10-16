@@ -4,11 +4,13 @@ interface
 
 uses
   System.SysUtils,
+  System.Variants,
   System.Generics.Collections,
   Orion.ORM.Interfaces,
   Orion.ORM.DB.Interfaces,
   Orion.ORM.Types,
-  Orion.ORM.Reflection;
+  Orion.ORM.Reflection,
+  Data.DB;
 
 type
   TOrionORMCore<T : class, constructor> = class
@@ -19,12 +21,14 @@ type
     FReflection : TOrionORMReflection;
     FPagination : iOrionPagination;
   private
+    procedure FillUpdatedRecordLists(Dataset: iDataset; UpdatedRecords: System.Generics.Collections.TDictionary<string, Boolean>);
     procedure ValidateMapper;
     procedure OpenDataset(var aDataset : iDataset; aMapper : iOrionORMMapper; aWhere : string = ''); overload;
     procedure OpenDataset(var aDataset : iDataset; aPrimaryKeys : TKeys; aPrimaryKeysValues : TKeysValues); overload;
     procedure OpenDataset(var aDataset : iDataset; aMapper, aChildMapper : iOrionORMMapper; aOwnerKeyValues : TKeysValues); overload;
     procedure SetOwnerKeyValues(aOwnerKeyFields : TKeys; var aOwnerKeyValues : TKeysValues; aDataset : iDataset);
     procedure LoadChildObjectList(aChildMapper : iOrionORMMapper; aOwnerObject : TObject; aOwnerDataset : iDataset);
+    procedure SaveChildObjectList(aChildMapper : iOrionORMMapper; aOwnerObject : TObject; aOwnerDataset : iDataset);
   public
     constructor Create(aCriteria : iOrionCriteria; aDBConnection : iDBConnection); overload;
     constructor Create(aCriteria : iOrionCriteria; aDBConnection : iDBConnection; aPagination : iOrionPagination); overload;
@@ -37,7 +41,7 @@ type
     function FindOneWithWhere(aWhere : string) : T;
     function FindManyWithWhere(aWhere : string) : TObjectList<T>;
     procedure Save(aValue : T);
-    procedure Delete(aID : Variant); overload;
+    procedure Delete(aPrimaryKeyValues : TKeysValues); overload;
     procedure Delete(aEntity : T); overload;
   end;
 
@@ -79,15 +83,62 @@ begin
 
 end;
 
-procedure TOrionORMCore<T>.Delete(aID: Variant);
+procedure TOrionORMCore<T>.Delete(aPrimaryKeyValues : TKeysValues);
+var
+  Keys : TKeys;
+  Dataset, ChildDataset : iDataset;
+  OneToManyMappers : TMappers;
+  Mapper : iOrionORMMapper;
+  OwnerKeysValues : TKeysValues;
 begin
-
+  Keys := FMapper.GetPrimaryKeyTableFieldName;
+  OpenDataset(Dataset, Keys, aPrimaryKeyValues);
+  OneToManyMappers := FMapper.GetOneToManyMappers;
+  if Length(OneToManyMappers) > 0 then
+  begin
+    for Mapper in OneToManyMappers do
+    begin
+      Keys := FMapper.GetAssociationOwnerKeyFields(Mapper);
+      SetOwnerKeyValues(Keys, OwnerKeysValues, Dataset);
+      OpenDataset(ChildDataset, FMapper, Mapper, OwnerKeysValues);
+      ChildDataset.First;
+      while ChildDataset.RecordCount > 0 do
+        ChildDataset.Delete;
+    end;
+  end;
+  Dataset.Delete;
 end;
 
 destructor TOrionORMCore<T>.Destroy;
 begin
   FReflection.DisposeOf;
   inherited;
+end;
+
+procedure TOrionORMCore<T>.FillUpdatedRecordLists(Dataset: iDataset;
+  UpdatedRecords: System.Generics.Collections.TDictionary<string, Boolean>);
+var
+  isPKFounded: Boolean;
+  DatasetField: TField;
+  ProviderFlag: TProviderFlag;
+begin
+  Dataset.First;
+  while not Dataset.Eof do
+  begin
+    isPKFounded := False;
+    for DatasetField in Dataset.Fields do begin
+      for ProviderFlag in DatasetField.ProviderFlags do begin
+        if ProviderFlag = pfInKey then begin
+          UpdatedRecords.Add(DatasetField.Value, False);
+          isPKFounded := True;
+          Break;
+        end;
+      end;
+      if isPKFounded then
+        Break;
+    end;
+    Dataset.Next;
+  end;
 end;
 
 function TOrionORMCore<T>.Find(aPrimaryKeyValues : TKeysValues): T;
@@ -163,8 +214,21 @@ begin
 end;
 
 function TOrionORMCore<T>.FindOneWithWhere(aWhere: string): T;
+var
+  Dataset : iDataset;
+  Mappers : TMappers;
+  Mapper : iOrionORMMapper;
 begin
-
+  ValidateMapper;
+  OpenDataset(Dataset, FMapper, aWhere);
+  Result := FReflection.CreateClass(FMapper.ClassType) as T;
+  FReflection.DatasetToObject(Dataset, Result, FMapper);
+  Mappers := FMapper.GetOneToManyMappers;
+  if Length(Mappers) > 0 then
+  begin
+    for Mapper in Mappers do
+      LoadChildObjectList(Mapper, Result, Dataset);
+  end;
 end;
 
 procedure TOrionORMCore<T>.LoadChildObjectList(aChildMapper : iOrionORMMapper; aOwnerObject : TObject; aOwnerDataset : iDataset);
@@ -232,8 +296,109 @@ begin
 end;
 
 procedure TOrionORMCore<T>.Save(aValue: T);
+var
+  Dataset : iDataset;
+  PrimaryKeys : TKeys;
+  TableKeys : TKeys;
+  KeysValues : TKeysValues;
+  OneToManyMappers : TMappers;
+  Mapper : iOrionORMMapper;
+  Mappers : TMappers;
 begin
+  ValidateMapper;
+  PrimaryKeys := FMapper.GetPrimaryKeyEntityFieldName;
+  TableKeys := FMapper.GetPrimaryKeyTableFieldName;
+  KeysValues := FReflection.GetPrimaryKeyEntityFieldValues(PrimaryKeys, aValue);
+  OpenDataset(Dataset, TableKeys, KeysValues);
 
+  if Dataset.RecordCount = 0 then
+    Dataset.Append
+  else
+    Dataset.Edit;
+
+  FReflection.ObjectToDataset(aValue, Dataset, FMapper);
+  Dataset.Post;
+  FReflection.RefreshEntityPrimaryKeysValues(Dataset, aValue, FMapper);
+  Mappers := FMapper.GetOneToManyMappers;
+  if Length(Mappers) > 0 then
+  begin
+    for Mapper in Mappers do
+      SaveChildObjectList(Mapper, aValue, Dataset);
+  end;
+end;
+
+procedure TOrionORMCore<T>.SaveChildObjectList(aChildMapper: iOrionORMMapper; aOwnerObject: TObject; aOwnerDataset: iDataset);
+var
+  OwnerKeyFields, ChildTableKeyFields, ChildKeyFields : TKeys;
+  OwnerKeyValues, ChildTableKeyValues, ChildKeyValues, UpdatedRecord : TKeysValues;
+  Dataset : iDataset;
+  ObjectList : TObjectList<TObject>;
+  Obj : TObject;
+  UpdatedRecords : TDictionary<TKeysValues, boolean>;
+  isEmptyDataset : boolean;
+  KeyField : string;
+begin
+  isEmptyDataset := False;
+  OwnerKeyFields := FMapper.GetAssociationOwnerKeyFields(aChildMapper);
+  SetOwnerKeyValues(OwnerKeyFields, OwnerKeyValues, aOwnerDataset);
+  OpenDataset(Dataset, FMapper, aChildMapper, OwnerKeyValues);
+  isEmptyDataset := Dataset.RecordCount = 0;
+  ObjectList := FReflection.GetChildObjectList(FMapper, aChildMapper, aOwnerObject);
+
+  if isEmptyDataset then
+  begin
+    for Obj in ObjectList do
+    begin
+      Dataset.Append;
+      FReflection.ObjectToDataset(Obj, Dataset, aChildMapper);
+      Dataset.Post;
+    end;
+  end
+  else
+  begin
+    UpdatedRecords := TDictionary<TKeysValues, boolean>.Create;
+    try
+      ChildTableKeyFields := aChildMapper.GetPrimaryKeyTableFieldName;
+      ChildKeyFields := aChildMapper.GetPrimaryKeyEntityFieldName;
+      Dataset.First;
+      while not Dataset.Eof do
+      begin
+        SetLength(ChildTableKeyValues, 0);
+        for KeyField in ChildTableKeyFields do
+        begin
+          SetLength(ChildTableKeyValues, Length(ChildTableKeyValues) + 1);
+          ChildTableKeyValues[Pred(Length(ChildTableKeyValues))] := Dataset.FieldByName(KeyField).AsVariant;
+        end;
+        UpdatedRecords.Add(ChildTableKeyValues, False);
+        Dataset.Next;
+      end;
+
+      for Obj in ObjectList do
+      begin
+        ChildKeyValues := FReflection.GetPrimaryKeyEntityFieldValues(ChildKeyFields, Obj);
+
+        if Dataset.Locate(ArrayStrToStr(ChildTableKeyFields), ChildKeyValues, [loCaseInsensitive]) then
+        begin
+          Dataset.Edit;
+          UpdatedRecords.AddOrSetValue(ChildKeyValues, True);
+        end
+        else
+          Dataset.Append;
+
+        FReflection.ObjectToDataset(Obj, Dataset, aChildMapper);
+        Dataset.Post;
+      end;
+
+      for UpdatedRecord in UpdatedRecords.Keys do begin
+        if not UpdatedRecords.Items[UpdatedRecord] then begin
+          Dataset.Locate(ArrayStrToStr(ChildTableKeyFields), UpdatedRecord, [loCaseInsensitive]);
+          Dataset.Delete;
+        end;
+      end;
+    finally
+      UpdatedRecords.DisposeOf;
+    end;
+  end;
 end;
 
 procedure TOrionORMCore<T>.SetOwnerKeyValues(aOwnerKeyFields : TKeys; var aOwnerKeyValues : TKeysValues; aDataset : iDataset);

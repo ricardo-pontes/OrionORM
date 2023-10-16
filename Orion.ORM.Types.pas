@@ -6,7 +6,7 @@ uses
   System.SysUtils;
 
 type
-  TConstraint = (PrimaryKey, ForeignKey, AutoInc, Nullable);
+  TConstraint = (PrimaryKey, ForeignKey, AutoInc, NullIfEmpty, IgnoreOnSave);
 
   TAssociationType = (OneToOne, OneToMany);
 

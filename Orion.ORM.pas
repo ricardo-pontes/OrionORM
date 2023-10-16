@@ -24,9 +24,7 @@ type
     function FindOneWithWhere(aWhere : string) : T;
     function FindManyWithWhere(aWhere : string) : TObjectList<T>;
     procedure Save(aValue : T);
-    procedure Delete(aID : int64); overload;
-    procedure Delete(aID : string); overload;
-    procedure Delete(aEntity : T); overload;
+    procedure Delete(aPrimaryKeyValues : TKeysValues);
   end;
 
 implementation
@@ -43,19 +41,9 @@ begin
   FCore := TOrionORMCore<T>.Create(TOrionORMCriteria.New, aDBConnection);
 end;
 
-procedure TOrionORM<T>.Delete(aEntity: T);
+procedure TOrionORM<T>.Delete(aPrimaryKeyValues : TKeysValues);
 begin
-  FCore.Delete(aEntity);
-end;
-
-procedure TOrionORM<T>.Delete(aID: string);
-begin
-  FCore.Delete(aID);
-end;
-
-procedure TOrionORM<T>.Delete(aID: int64);
-begin
-  FCore.Delete(aID);
+  FCore.Delete(aPrimaryKeyValues);
 end;
 
 destructor TOrionORM<T>.Destroy;

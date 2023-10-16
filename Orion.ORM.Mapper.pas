@@ -6,7 +6,8 @@ uses
   System.SysUtils,
   System.Generics.Collections,
   Orion.ORM.Interfaces,
-  Orion.ORM.Types;
+  Orion.ORM.Types,
+  Orion.ORM.Reflection;
 
 type
   TOrionMapper = class(TInterfacedObject, iOrionORMMapper)
@@ -33,8 +34,11 @@ type
     function ContainsEmptyEntityFieldName : boolean;
     function ContainsEmptyTableFieldName : boolean;
     function ContainsEmptyMapper : boolean;
+    function GetChildObjectList(aMapper: iOrionORMMapper; aOwnerObject: TObject): TObjectList<TObject>;
     function GetPrimaryKeyEntityFieldName : TKeys;
+    function GetPrimaryKeyEntityFieldValues : TKeysValues;
     function GetPrimaryKeyTableFieldName : TKeys;
+    function GetMapperValue(aEntityFieldName : string) : TMapperValue;
     function GetOneToManyMappers : TMappers;
     function GetAssociationOwnerKeyFields (aMapper : iOrionORMMapper): TKeys;
     function GetAssociationChildKeyFields(aMapper : iOrionORMMapper): TKeys;
@@ -99,9 +103,37 @@ begin
   end;
 end;
 
+function TOrionMapper.GetChildObjectList(aMapper: iOrionORMMapper; aOwnerObject: TObject): TObjectList<TObject>;
+var
+  MapperValue: TMapperValue;
+begin
+  for MapperValue in FItens do
+  begin
+    if MapperValue.Mapper <> aMapper then
+      Continue;
+
+//    Result := aReflection.GetChildObjectList
+    Exit;
+  end;
+end;
+
 function TOrionMapper.GetClassType: TClass;
 begin
   Result := FClassType;
+end;
+
+function TOrionMapper.GetMapperValue(aEntityFieldName: string): TMapperValue;
+var
+  Mapper : TMapperValue;
+begin
+  for Mapper in FItens do
+  begin
+    if Mapper.EntityFieldName = aEntityFieldName then
+    begin
+      Result := Mapper;
+      Exit;
+    end;
+  end;
 end;
 
 procedure TOrionMapper.SetClassType(const aValue: TClass);
@@ -221,6 +253,11 @@ begin
       end;
     end;
   end;
+end;
+
+function TOrionMapper.GetPrimaryKeyEntityFieldValues: TKeysValues;
+begin
+
 end;
 
 function TOrionMapper.GetPrimaryKeyTableFieldName: TKeys;

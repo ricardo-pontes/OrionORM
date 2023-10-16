@@ -22,9 +22,15 @@ uses
   Orion.ORM.DBConnection.FireDAC.SQLite,
   Orion.ORM.Criteria,
   Entity,
-  Vcl.StdCtrls, Vcl.WinXCtrls, Vcl.Mask, Vcl.ExtCtrls;
+  Vcl.StdCtrls, Vcl.WinXCtrls, Vcl.Mask, Vcl.ExtCtrls, Vcl.Grids;
 
 type
+ TStringGridHack = class(TStringGrid)
+  protected
+    procedure DeleteRow(ARow: Longint); reintroduce;
+    procedure InsertRow(ARow: Longint);
+  end;
+
   TForm1 = class(TForm)
     Button1: TButton;
     EditID: TLabeledEdit;
@@ -40,12 +46,28 @@ type
     Button2: TButton;
     Button3: TButton;
     LabeledEdit1: TLabeledEdit;
+    Button4: TButton;
+    Button5: TButton;
+    LabeledEdit2: TLabeledEdit;
+    Button6: TButton;
+    StringGridContacts: TStringGrid;
+    EditPhoneNumber: TLabeledEdit;
+    Button7: TButton;
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
+    procedure Button4Click(Sender: TObject);
+    procedure Button5Click(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure Button6Click(Sender: TObject);
+    procedure Button7Click(Sender: TObject);
   private
+    FContactID : integer;
     FOrionORM : iOrionORM<TPerson>;
+    FPerson : TPerson;
+    procedure StringGridConfiguration;
+    procedure FillStringGridContacts(aContacts : TObjectList<TContact>);
   public
     { Public declarations }
   end;
@@ -59,32 +81,31 @@ implementation
 
 procedure TForm1.Button1Click(Sender: TObject);
 var
-  Person : TPerson;
   Contact : TContact;
 begin
-  Person := FOrionORM.Find([1]);
-  try
-    EditID.Text := Person.ID.ToString;
-    EditName.Text := Person.Name;
-    EditSalary.Text := Person.Salary.ToString;
-    if Person.Active then
-      SwitchActive.State := tssOn
-    else
-      SwitchActive.State := tssOff;
+  if Assigned(FPerson) then
+    FPerson.DisposeOf;
 
-    EditStreet.Text := Person.Address.Street;
-    EditNumber.Text := Person.Address.Number;
-    EditNeighborhood.Text := Person.Address.Neighborhood;
-    EditCity.Text := Person.Address.City;
-    EditPostalCode.Text := Person.Address.PostalCode;
+  FPerson := FOrionORM.Find([LabeledEdit2.Text]);
+  EditID.Text := FPerson.ID.ToString;
+  EditName.Text := FPerson.Name;
+  EditSalary.Text := FPerson.Salary.ToString;
+  if FPerson.Active then
+    SwitchActive.State := tssOn
+  else
+    SwitchActive.State := tssOff;
 
-    Memo1.Lines.Clear;
-    for Contact in Person.Contacts do
-      Memo1.Lines.Add(Format('ID: %d - PersonID: %d - PhoneNumber: %s', [Contact.ID, Contact.PersonID, Contact.PhoneNumber]));
+  EditStreet.Text := FPerson.Address.Street;
+  EditNumber.Text := FPerson.Address.Number;
+  EditNeighborhood.Text := FPerson.Address.Neighborhood;
+  EditCity.Text := FPerson.Address.City;
+  EditPostalCode.Text := FPerson.Address.PostalCode;
 
-  finally
-    Person.DisposeOf;
-  end;
+  FillStringGridContacts(FPerson.Contacts);
+  Memo1.Lines.Clear;
+  for Contact in FPerson.Contacts do
+    Memo1.Lines.Add(Format('ID: %d - PersonID: %d - PhoneNumber: %s', [Contact.ID, Contact.PersonID, Contact.PhoneNumber]));
+
 end;
 
 procedure TForm1.Button2Click(Sender: TObject);
@@ -118,10 +139,99 @@ begin
 
 end;
 
+procedure TForm1.Button4Click(Sender: TObject);
+var
+  Person : TPerson;
+  Contact : TContact;
+begin
+  Person := FOrionORM.FindOneWithWhere(LabeledEdit1.Text);
+  try
+    EditID.Text := Person.ID.ToString;
+    EditName.Text := Person.Name;
+    EditSalary.Text := Person.Salary.ToString;
+    if Person.Active then
+      SwitchActive.State := tssOn
+    else
+      SwitchActive.State := tssOff;
+
+    EditStreet.Text := Person.Address.Street;
+    EditNumber.Text := Person.Address.Number;
+    EditNeighborhood.Text := Person.Address.Neighborhood;
+    EditCity.Text := Person.Address.City;
+    EditPostalCode.Text := Person.Address.PostalCode;
+
+    Memo1.Lines.Clear;
+    for Contact in Person.Contacts do
+      Memo1.Lines.Add(Format('ID: %d - PersonID: %d - PhoneNumber: %s', [Contact.ID, Contact.PersonID, Contact.PhoneNumber]));
+
+  finally
+    Person.DisposeOf;
+  end;
+end;
+
+procedure TForm1.Button5Click(Sender: TObject);
+begin
+  FOrionORM.Delete([LabeledEdit2.Text]);
+end;
+
+procedure TForm1.Button6Click(Sender: TObject);
+var
+  Contact : TContact;
+begin
+  if not Assigned(FPerson) then
+    FPerson := TPerson.Create;
+
+  FPerson.ID := StrToIntDef(EditID.Text, 0);
+  FPerson.Name := EditName.Text;
+  FPerson.Salary := StrToFloat(EditSalary.Text);
+  FPerson.Active := SwitchActive.IsOn;
+  FPerson.Address.Street := EditStreet.Text;
+  FPerson.Address.Number := EditNumber.Text;
+  FPerson.Address.Neighborhood := EditNeighborhood.Text;
+  FPerson.Address.City := EditCity.Text;
+  FPerson.Address.PostalCode := EditPostalCode.Text;
+
+//  Contact := TContact.Create;
+//  Contact.PersonID := 2;
+//  Contact.PhoneNumber := '99999999999';
+//  FPerson.Contacts.Add(Contact);
+//  FPerson.Contacts.Delete(0);
+  FOrionORM.Save(FPerson);
+  EditID.Text := IntToStr(FPerson.ID);
+end;
+
+procedure TForm1.Button7Click(Sender: TObject);
+var
+  Contact : TContact;
+begin
+  Contact := TContact.Create;
+  Contact.PersonID := FPerson.ID;
+  Contact.PhoneNumber := EditPhoneNumber.Text;
+  FPerson.Contacts.Add(Contact);
+end;
+
+procedure TForm1.FillStringGridContacts(aContacts: TObjectList<TContact>);
+var
+  Contact: TContact;
+  LPrice: string;
+begin
+  StringGridContacts.RowCount := 1;
+  for Contact in aContacts do
+  begin
+    StringGridContacts.Cells[0, StringGridContacts.RowCount] := IntToStr(Contact.ID);
+    StringGridContacts.Cells[1, StringGridContacts.RowCount] := IntToStr(Contact.PersonID);
+    StringGridContacts.Cells[2, StringGridContacts.RowCount] := Contact.PhoneNumber;
+    TStringGridHack(StringGridContacts).InsertRow(1);
+  end;
+  if StringGridContacts.RowCount > 1 then
+    StringGridContacts.FixedRows := 1;
+end;
+
 procedure TForm1.FormCreate(Sender: TObject);
 var
   DBConnection : iDBConnection;
 begin
+  StringGridConfiguration;
   DBConnection := TOrionORMDBConnectionFiredacSQLite.New;
   DBConnection.Configurations(ExtractFileDir(GetCurrentDir) + 'dbteste.sqlite3', '', '', '', 0);
   FOrionORM := TOrionORM<TPerson>.New(DBConnection);
@@ -147,6 +257,48 @@ begin
   Mapper.Add(TMapperValue.Create('Address.PostalCode', 'PEOPLE_POSTAL_CODE'));
   Mapper.Add(TMapperValue.Create('Contacts', MapperContacts, TAssociation.Create(OneToMany, ['PEOPLE_ID'], ['PC_PEOPLE_ID'])));
   FOrionORM.Mapper(Mapper);
+end;
+
+procedure TForm1.FormDestroy(Sender: TObject);
+begin
+  if Assigned(FPerson) then
+    FPerson.DisposeOf;
+end;
+
+procedure TForm1.StringGridConfiguration;
+begin
+  StringGridContacts.Cols[0].Text := 'ID';
+  StringGridContacts.ColWidths[0] := 150;
+  StringGridContacts.Cols[1].Text := 'PeopleID';
+  StringGridContacts.ColWidths[1] := 150;
+  StringGridContacts.Cols[2].Text := 'PhoneNumber';
+  StringGridContacts.ColWidths[2] := 150;
+end;
+
+{ TStringGridHack }
+
+procedure TStringGridHack.DeleteRow(ARow: Longint);
+var
+  GemRow: Integer;
+begin
+  GemRow := Row;
+  if RowCount > FixedRows + 1 then
+    inherited DeleteRow(ARow)
+  else
+    Rows[ARow].Clear;
+  if GemRow < RowCount then
+    Row := GemRow;
+end;
+
+procedure TStringGridHack.InsertRow(ARow: Longint);
+var
+  GemRow: Integer;
+begin
+  GemRow := Row;
+  while ARow < FixedRows do
+    Inc(ARow);
+  RowCount := RowCount + 1;
+  Row := GemRow;
 end;
 
 end.
