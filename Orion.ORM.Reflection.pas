@@ -83,6 +83,9 @@ begin
     if not aDataset.FieldExist(MapperValue.TableFieldName) then
       raise OrionORMException.Create('Table Field Name ' + MapperValue.TableFieldName + ' not found.');
 
+    if not RttiProperty.Prop.IsWritable then
+      Continue;
+
     case RttiProperty.Prop.PropertyType.TypeKind of
       tkUnknown: ;
       tkInteger: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(MapperValue.TableFieldName).AsInteger);
@@ -226,6 +229,9 @@ begin
 
     if not aDataset.FieldExist(MapperValue.TableFieldName) then
       raise OrionORMException.Create('Table Field Name ' + MapperValue.TableFieldName + ' not found.');
+
+    if not RttiProperty.Prop.IsReadable then
+      Continue;
 
     case RttiProperty.Prop.PropertyType.TypeKind of
       tkUnknown: ;
