@@ -51,7 +51,6 @@ begin
   Result := Result + ' FROM ' + aMapper.TableName;
   for Join in aMapper.Joins do
     Result := Result + ' ' + Join;
-
 end;
 
 function TOrionORMCriteria.BuildDelete(aMapper : iOrionORMMapper) : TSelects;

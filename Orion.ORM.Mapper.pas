@@ -146,7 +146,8 @@ end;
 
 procedure TOrionMapper.AddJoin(aValue: string);
 begin
-
+  if not FJoins.Contains(aValue) then
+    FJoins.Add(aValue);
 end;
 
 function TOrionMapper.ContainsEmptyEntityFieldName: boolean;
