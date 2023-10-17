@@ -23,6 +23,7 @@ type
   TOrionORMReflection = class
   private
     function GetProperty(aObject : TObject; aEntityFieldName : string) : TGetProperty;
+    function GetTableFieldName(aTableFieldName : string) : string;
   public
     procedure DatasetToObject(aDataset : iDataset; aObject : TObject; aMapper : iOrionORMMapper);
     function CreateClass(aClassType : TClass): TObject;
@@ -182,6 +183,20 @@ begin
 
 end;
 
+function TOrionORMReflection.GetTableFieldName(aTableFieldName: string): string;
+var
+  SplittedString : TArray<string>;
+begin
+  if not aTableFieldName.Contains('.') then
+  begin
+    Result := aTableFieldName;
+    Exit;
+  end;
+
+  SplittedString := aTableFieldName.Split(['.']);
+  Result := SplittedString[Pred(Length(SplittedString))];
+end;
+
 procedure TOrionORMReflection.IncObjectInList<T>(aObjectList: TObjectList<T>; aObject: TObject);
 begin
   aObjectList.Add(aObject);
@@ -195,6 +210,7 @@ var
   IsAutInc : boolean;
   IsNullIfEmpty : boolean;
   IsIgnoreOnSave : boolean;
+  TableFieldName : string;
 begin
   for MapperValue in aMapper.Items do
   begin
@@ -224,6 +240,7 @@ begin
       Continue;
 
     RttiProperty := GetProperty(aObject, MapperValue.EntityFieldName);
+    TableFieldName := GetTableFieldName(MapperValue.TableFieldName);
     if not Assigned(RttiProperty.Prop) then
       raise OrionORMException.Create('Entity Field Name ' + MapperValue.EntityFieldName + ' not found.');
 
@@ -238,31 +255,31 @@ begin
       tkInteger:
       begin
         if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsInteger = 0) then
-          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+          aDataset.FieldByName(TableFieldName).AsVariant := Null
         else
-          aDataset.FieldByName(MapperValue.TableFieldName).AsInteger := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsInteger;
+          aDataset.FieldByName(TableFieldName).AsInteger := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsInteger;
       end;
       tkChar:
       begin
         if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString = '') then
-          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+          aDataset.FieldByName(TableFieldName).AsVariant := Null
         else
-         aDataset.FieldByName(MapperValue.TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
+         aDataset.FieldByName(TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
       end;
-      tkEnumeration: aDataset.FieldByName(MapperValue.TableFieldName).AsBoolean := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsBoolean;
+      tkEnumeration: aDataset.FieldByName(TableFieldName).AsBoolean := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsBoolean;
       tkFloat:
       begin
         if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsExtended = 0) then
-          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+          aDataset.FieldByName(TableFieldName).AsVariant := Null
         else
-          aDataset.FieldByName(MapperValue.TableFieldName).AsExtended := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsExtended;
+          aDataset.FieldByName(TableFieldName).AsExtended := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsExtended;
       end;
       tkString:
       begin
         if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString = '') then
-          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+          aDataset.FieldByName(TableFieldName).AsVariant := Null
         else
-          aDataset.FieldByName(MapperValue.TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
+          aDataset.FieldByName(TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
       end;
       tkSet: ;
       tkClass: ;
@@ -270,23 +287,23 @@ begin
       tkWChar:
       begin
         if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString = '') then
-          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+          aDataset.FieldByName(TableFieldName).AsVariant := Null
         else
-          aDataset.FieldByName(MapperValue.TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
+          aDataset.FieldByName(TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
       end;
       tkLString:
       begin
         if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString = '') then
-          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+          aDataset.FieldByName(TableFieldName).AsVariant := Null
         else
-          aDataset.FieldByName(MapperValue.TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
+          aDataset.FieldByName(TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
       end;
       tkWString:
       begin
         if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString = '') then
-          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+          aDataset.FieldByName(TableFieldName).AsVariant := Null
         else
-          aDataset.FieldByName(MapperValue.TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
+          aDataset.FieldByName(TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
       end;
       tkVariant: ;
       tkArray: ;
@@ -295,17 +312,17 @@ begin
       tkInt64:
       begin
         if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsInt64 = 0) then
-          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+          aDataset.FieldByName(TableFieldName).AsVariant := Null
         else
-          aDataset.FieldByName(MapperValue.TableFieldName).AsLargeInt := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsInt64;
+          aDataset.FieldByName(TableFieldName).AsLargeInt := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsInt64;
       end;
       tkDynArray: ;
       tkUString:
       begin
         if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString = '') then
-          aDataset.FieldByName(MapperValue.TableFieldName).AsVariant := Null
+          aDataset.FieldByName(TableFieldName).AsVariant := Null
         else
-          aDataset.FieldByName(MapperValue.TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
+          aDataset.FieldByName(TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
       end;
       tkClassRef: ;
       tkPointer: ;
