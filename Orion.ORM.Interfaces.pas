@@ -58,6 +58,7 @@ type
     property ClassType : TClass read GetClassType write SetClassType;
 
     procedure Add(aMapperValue : TMapperValue);
+    procedure AddJoin(aValue : string);
     function ContainsPrimaryKey : boolean;
     function ContainsEmptyEntityFieldName : boolean;
     function ContainsEmptyTableFieldName : boolean;
@@ -70,6 +71,7 @@ type
     function GetMapperValue(aEntityFieldName : string) : TMapperValue;
     function GetOneToManyMappers : TMappers;
     function Items : TList<TMapperValue>;
+    function Joins : TList<string>;
 
     procedure SetPagination(const aValue : iOrionPagination);
     function GetPagination : iOrionPagination;

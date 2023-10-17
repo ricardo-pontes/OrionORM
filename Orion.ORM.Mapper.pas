@@ -15,6 +15,7 @@ type
     FClassType : TClass;
     FPagination : iOrionPagination;
     FItens : TList<TMapperValue>;
+    FJoins : TList<string>;
     FTableName : string;
   private
     procedure SetPagination(const aValue : iOrionPagination);
@@ -29,6 +30,7 @@ type
     class function New : iOrionORMMapper;
 
     procedure Add(aMapperValue : TMapperValue); overload;
+    procedure AddJoin(aValue : string);
     property ClassTyp : TClass read GetClassType write SetClassType;
     function ContainsPrimaryKey : boolean;
     function ContainsEmptyEntityFieldName : boolean;
@@ -44,6 +46,7 @@ type
     function GetAssociationChildKeyFields(aMapper : iOrionORMMapper): TKeys;
     function GetAssociationObjectListFieldName(aMapper : iOrionORMMapper) : string;
     function Items : TList<TMapperValue>;
+    function Joins : TList<string>;
   public
     property TableName: string read GetTableName write SetTableName;
     property Pagination: iOrionPagination read GetPagination write SetPagination;
@@ -141,6 +144,11 @@ begin
   FClassType := aValue;
 end;
 
+procedure TOrionMapper.AddJoin(aValue: string);
+begin
+
+end;
+
 function TOrionMapper.ContainsEmptyEntityFieldName: boolean;
 var
   Mapper : TMapperValue;
@@ -207,12 +215,14 @@ end;
 constructor TOrionMapper.Create;
 begin
   FItens := TList<TMapperValue>.Create;
+  FJoins := TList<string>.Create;
   FPagination := TOrionPagination.New;
 end;
 
 destructor TOrionMapper.Destroy;
 begin
   FItens.DisposeOf;
+  FJoins.DisposeOf;
   inherited;
 end;
 
@@ -288,6 +298,11 @@ end;
 function TOrionMapper.Items: TList<TMapperValue>;
 begin
   Result := FItens;
+end;
+
+function TOrionMapper.Joins: TList<string>;
+begin
+  Result := FJoins;
 end;
 
 class function TOrionMapper.New: iOrionORMMapper;

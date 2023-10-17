@@ -30,6 +30,7 @@ function TOrionORMCriteria.BuildBaseSelect(aMapper : iOrionORMMapper): string;
 var
   MapperValue: TMapperValue;
   AssociationMappers : array of iOrionORMMapper;
+  Join: string;
 begin
   Result := 'SELECT ';
   for MapperValue in aMapper.Items do
@@ -48,6 +49,9 @@ begin
   end;
 
   Result := Result + ' FROM ' + aMapper.TableName;
+  for Join in aMapper.Joins do
+    Result := Result + ' ' + Join;
+
 end;
 
 function TOrionORMCriteria.BuildDelete(aMapper : iOrionORMMapper) : TSelects;
