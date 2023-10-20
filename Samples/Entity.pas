@@ -6,6 +6,7 @@ uses
   System.Generics.Collections;
 
 type
+  TFinancialStatus = (None, Blocked, Test);
   TAddress = class;
   TContact = class;
 
@@ -17,6 +18,7 @@ type
     FActive: boolean;
     FAddress: TAddress;
     FContacts: TObjectList<TContact>;
+    FFinancialStatus: TFinancialStatus;
 
   public
     constructor Create;
@@ -26,6 +28,7 @@ type
     property Name: string read FName write FName;
     property Salary: Double read FSalary write FSalary;
     property Active: boolean read FActive write FActive;
+    property FinancialStatus: TFinancialStatus read FFinancialStatus write FFinancialStatus;
     property Address: TAddress read FAddress write FAddress;
     property Contacts: TObjectList<TContact> read FContacts write FContacts;
   end;

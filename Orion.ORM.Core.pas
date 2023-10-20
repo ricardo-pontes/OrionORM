@@ -21,7 +21,7 @@ type
     FReflection : TOrionORMReflection;
     FPagination : iOrionPagination;
   private
-    procedure FillUpdatedRecordLists(Dataset: iDataset; UpdatedRecords: System.Generics.Collections.TDictionary<string, Boolean>);
+
     procedure ValidateMapper;
     procedure OpenDataset(var aDataset : iDataset; aMapper : iOrionORMMapper; aWhere : string = ''); overload;
     procedure OpenDataset(var aDataset : iDataset; aPrimaryKeys : TKeys; aPrimaryKeysValues : TKeysValues); overload;
@@ -115,32 +115,6 @@ begin
   inherited;
 end;
 
-procedure TOrionORMCore<T>.FillUpdatedRecordLists(Dataset: iDataset;
-  UpdatedRecords: System.Generics.Collections.TDictionary<string, Boolean>);
-var
-  isPKFounded: Boolean;
-  DatasetField: TField;
-  ProviderFlag: TProviderFlag;
-begin
-  Dataset.First;
-  while not Dataset.Eof do
-  begin
-    isPKFounded := False;
-    for DatasetField in Dataset.Fields do begin
-      for ProviderFlag in DatasetField.ProviderFlags do begin
-        if ProviderFlag = pfInKey then begin
-          UpdatedRecords.Add(DatasetField.Value, False);
-          isPKFounded := True;
-          Break;
-        end;
-      end;
-      if isPKFounded then
-        Break;
-    end;
-    Dataset.Next;
-  end;
-end;
-
 function TOrionORMCore<T>.Find(aPrimaryKeyValues : TKeysValues): T;
 var
   Dataset : iDataset;
@@ -152,12 +126,19 @@ begin
   PrimaryKeys := FMapper.GetPrimaryKeyTableFieldName;
   OpenDataset(Dataset, PrimaryKeys, aPrimaryKeyValues);
   Result := FReflection.CreateClass(FMapper.ClassType) as T;
-  FReflection.DatasetToObject(Dataset, Result, FMapper);
-  OneToManyMappers := FMapper.GetOneToManyMappers;
-  if Length(OneToManyMappers) > 0 then
-  begin
-    for Mapper in OneToManyMappers do
-      LoadChildObjectList(Mapper, Result, Dataset);
+  try
+    FReflection.DatasetToObject(Dataset, Result, FMapper);
+    OneToManyMappers := FMapper.GetOneToManyMappers;
+    if Length(OneToManyMappers) > 0 then
+    begin
+      for Mapper in OneToManyMappers do
+        LoadChildObjectList(Mapper, Result, Dataset);
+    end;
+  except on E: Exception do
+    begin
+      Result.DisposeOf;
+      Result := nil;
+    end;
   end;
 end;
 
@@ -170,20 +151,26 @@ begin
   ValidateMapper;
   OpenDataset(Dataset, FMapper);
   Result := TObjectList<T>.Create;
-
-  Dataset.First;
-  while not Dataset.Eof do
-  begin
-    var OwnerObject := FReflection.CreateClass(FMapper.ClassType) as T;
-    FReflection.DatasetToObject(Dataset, OwnerObject, FMapper);
-    Mappers := FMapper.GetOneToManyMappers;
-    if Length(Mappers) > 0 then
+  try
+    Dataset.First;
+    while not Dataset.Eof do
     begin
-      for Mapper in Mappers do
-        LoadChildObjectList(Mapper, OwnerObject, Dataset);
+      var OwnerObject := FReflection.CreateClass(FMapper.ClassType) as T;
+      FReflection.DatasetToObject(Dataset, OwnerObject, FMapper);
+      Mappers := FMapper.GetOneToManyMappers;
+      if Length(Mappers) > 0 then
+      begin
+        for Mapper in Mappers do
+          LoadChildObjectList(Mapper, OwnerObject, Dataset);
+      end;
+      FReflection.IncObjectInList<T>(Result, OwnerObject);
+      Dataset.Next;
     end;
-    FReflection.IncObjectInList<T>(Result, OwnerObject);
-    Dataset.Next;
+  except on E: Exception do
+    begin
+      Result.DisposeOf;
+      Result := nil;
+    end;
   end;
 end;
 
@@ -196,20 +183,26 @@ begin
   ValidateMapper;
   OpenDataset(Dataset, FMapper, aWhere);
   Result := TObjectList<T>.Create;
-
-  Dataset.First;
-  while not Dataset.Eof do
-  begin
-    var OwnerObject := FReflection.CreateClass(FMapper.ClassType) as T;
-    FReflection.DatasetToObject(Dataset, OwnerObject, FMapper);
-    Mappers := FMapper.GetOneToManyMappers;
-    if Length(Mappers) > 0 then
+    try
+    Dataset.First;
+    while not Dataset.Eof do
     begin
-      for Mapper in Mappers do
-        LoadChildObjectList(Mapper, OwnerObject, Dataset);
+      var OwnerObject := FReflection.CreateClass(FMapper.ClassType) as T;
+      FReflection.DatasetToObject(Dataset, OwnerObject, FMapper);
+      Mappers := FMapper.GetOneToManyMappers;
+      if Length(Mappers) > 0 then
+      begin
+        for Mapper in Mappers do
+          LoadChildObjectList(Mapper, OwnerObject, Dataset);
+      end;
+      FReflection.IncObjectInList<T>(Result, OwnerObject);
+      Dataset.Next;
     end;
-    FReflection.IncObjectInList<T>(Result, OwnerObject);
-    Dataset.Next;
+  except on E: Exception do
+    begin
+      Result.DisposeOf;
+      Result := nil;
+    end;
   end;
 end;
 
@@ -222,12 +215,19 @@ begin
   ValidateMapper;
   OpenDataset(Dataset, FMapper, aWhere);
   Result := FReflection.CreateClass(FMapper.ClassType) as T;
-  FReflection.DatasetToObject(Dataset, Result, FMapper);
-  Mappers := FMapper.GetOneToManyMappers;
-  if Length(Mappers) > 0 then
-  begin
-    for Mapper in Mappers do
-      LoadChildObjectList(Mapper, Result, Dataset);
+  try
+    FReflection.DatasetToObject(Dataset, Result, FMapper);
+    Mappers := FMapper.GetOneToManyMappers;
+    if Length(Mappers) > 0 then
+    begin
+      for Mapper in Mappers do
+        LoadChildObjectList(Mapper, Result, Dataset);
+    end;
+  except on E: Exception do
+    begin
+      Result.DisposeOf;
+      Result := nil;
+    end;
   end;
 end;
 

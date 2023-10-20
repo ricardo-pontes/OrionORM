@@ -127,6 +127,8 @@ object Form1: TForm1
     Height = 72
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 10
+    ExplicitWidth = 754
+    ExplicitHeight = 71
   end
   object Button2: TButton
     Left = 452
@@ -205,6 +207,8 @@ object Form1: TForm1
     FixedCols = 0
     FixedRows = 0
     TabOrder = 18
+    ExplicitTop = 399
+    ExplicitWidth = 754
   end
   object EditPhoneNumber: TLabeledEdit
     Left = 23
@@ -225,5 +229,17 @@ object Form1: TForm1
     Caption = 'Save'
     TabOrder = 20
     OnClick = Button7Click
+  end
+  object EditFinancialStatus: TLabeledEdit
+    Left = 491
+    Top = 177
+    Width = 117
+    Height = 23
+    EditLabel.Width = 63
+    EditLabel.Height = 15
+    EditLabel.Caption = 'Postal Code'
+    ImeName = 'Portuguese (Brazilian ABNT)'
+    TabOrder = 21
+    Text = ''
   end
 end

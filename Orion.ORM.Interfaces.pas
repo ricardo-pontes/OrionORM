@@ -3,6 +3,7 @@ unit Orion.ORM.Interfaces;
 interface
 
 uses
+  System.SysUtils,
   System.Generics.Collections,
   Orion.ORM.Types;
 
@@ -15,8 +16,6 @@ type
   TKeysValues = array of Variant;
   TSelects = TArray<TPair<string, string>>;
   TMappers = array of iOrionORMMapper;
-
-
   TAssociation = record
     &Type : TAssociationType;
     OwnerKeys : TKeys;
@@ -30,9 +29,12 @@ type
     Constraints : TConstraints;
     Mapper : iOrionORMMapper;
     Association : TAssociation;
+    Enum : TObject;
     class function Create(aEntityFieldName, aTableFieldName : string) : TMapperValue; overload; static;
+    class function Create<T>(aEntityFieldName, aTableFieldName : string; aEnumType : TEnumConvert<T>) : TMapperValue; overload; static;
     class function Create(aEntityFieldName, aTableFieldName : string; aConstraints : TConstraints) : TMapperValue; overload; static;
     class function Create(aEntityFieldName : string; aMapper : iOrionORMMapper; aAssociation : TAssociation) : TMapperValue; overload; static;
+    procedure Destroy;
   end;
 
   iOrionORM<T:class, constructor> = interface
@@ -108,6 +110,19 @@ begin
   Result.Constraints := [];
   Result.Mapper := aMapper;
   Result.Association := aAssociation;
+end;
+
+class function TMapperValue.Create<T>(aEntityFieldName, aTableFieldName: string; aEnumType : TEnumConvert<T>): TMapperValue;
+begin
+  Result.EntityFieldName := aEntityFieldName;
+  Result.TableFieldName := aTableFieldName;
+  Result.Enum := aEnumType;
+end;
+
+procedure TMapperValue.Destroy;
+begin
+  if Assigned(Enum) then
+    Enum.DisposeOf;
 end;
 
 class function TMapperValue.Create(aEntityFieldName, aTableFieldName: string; aConstraints: TConstraints): TMapperValue;

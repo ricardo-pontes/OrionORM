@@ -9,6 +9,7 @@ uses
   System.Variants,
   System.Classes,
   System.Generics.Collections,
+  System.Rtti,
   Vcl.Graphics,
   Vcl.Controls,
   Vcl.Forms,
@@ -53,6 +54,7 @@ type
     StringGridContacts: TStringGrid;
     EditPhoneNumber: TLabeledEdit;
     Button7: TButton;
+    EditFinancialStatus: TLabeledEdit;
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
@@ -100,7 +102,7 @@ begin
   EditNeighborhood.Text := FPerson.Address.Neighborhood;
   EditCity.Text := FPerson.Address.City;
   EditPostalCode.Text := FPerson.Address.PostalCode;
-
+  EditFinancialStatus.Text := TRttiEnumerationType.GetName(FPerson.FinancialStatus);
   FillStringGridContacts(FPerson.Contacts);
   Memo1.Lines.Clear;
   for Contact in FPerson.Contacts do
@@ -185,6 +187,7 @@ begin
   FPerson.Name := EditName.Text;
   FPerson.Salary := StrToFloat(EditSalary.Text);
   FPerson.Active := SwitchActive.IsOn;
+  FPerson.FinancialStatus := TRttiEnumerationType.GetValue<TFinancialStatus>(EditFinancialStatus.Text);
   FPerson.Address.Street := EditStreet.Text;
   FPerson.Address.Number := EditNumber.Text;
   FPerson.Address.Neighborhood := EditNeighborhood.Text;
@@ -250,6 +253,7 @@ begin
   Mapper.Add(TMapperValue.Create('Name', 'PEOPLE_NAME'));
   Mapper.Add(TMapperValue.Create('Salary', 'PEOPLE_SALARY'));
   Mapper.Add(TMapperValue.Create('Active', 'PEOPLE_ACTIVE'));
+  Mapper.Add(TMapperValue.Create<TFinancialStatus>('FinancialStatus', 'PEOPLE_FINANCIAL_STATUS', TEnumConvert<TFinancialStatus>.Create));
   Mapper.Add(TMapperValue.Create('Address.Street', 'PEOPLE_STREET'));
   Mapper.Add(TMapperValue.Create('Address.Number', 'PEOPLE_NUMBER'));
   Mapper.Add(TMapperValue.Create('Address.Neighborhood', 'PEOPLE_NEIGHBORHOOD'));

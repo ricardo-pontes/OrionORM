@@ -110,6 +110,7 @@ function TOrionMapper.GetChildObjectList(aMapper: iOrionORMMapper; aOwnerObject:
 var
   MapperValue: TMapperValue;
 begin
+  Result := nil;
   for MapperValue in FItens do
   begin
     if MapperValue.Mapper <> aMapper then
@@ -221,7 +222,12 @@ begin
 end;
 
 destructor TOrionMapper.Destroy;
+var
+  Item : TMapperValue;
 begin
+  for Item in FItens do
+    Item.Destroy;
+
   FItens.DisposeOf;
   FJoins.DisposeOf;
   inherited;

@@ -24,6 +24,8 @@ type
   private
     function GetProperty(aObject : TObject; aEntityFieldName : string) : TGetProperty;
     function GetTableFieldName(aTableFieldName : string) : string;
+    function GetEnumConvert(aValue : TValue; aObject : TObject) : string; overload;
+    function GetEnumConvert(aEnumName : string; aObject : TObject) : TValue; overload;
   public
     procedure DatasetToObject(aDataset : iDataset; aObject : TObject; aMapper : iOrionORMMapper);
     function CreateClass(aClassType : TClass): TObject;
@@ -91,7 +93,16 @@ begin
       tkUnknown: ;
       tkInteger: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(MapperValue.TableFieldName).AsInteger);
       tkChar: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(MapperValue.TableFieldName).AsString);
-      tkEnumeration: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(MapperValue.TableFieldName).AsBoolean);
+      tkEnumeration:
+      begin
+        if RttiProperty.Prop.PropertyType.Name.ToLower = 'boolean' then
+          RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(MapperValue.TableFieldName).AsBoolean)
+        else
+        begin
+//          RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), TEnumConvert<T>(MapperValue.Enums.Items[MapperValue.EntityFieldName]).ConvertToEnum(aDataset.FieldByName(MapperValue.TableFieldName).AsString));
+          RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), GetEnumConvert(aDataset.FieldByName(MapperValue.TableFieldName).AsString, MapperValue.Enum));
+        end;
+      end;
       tkFloat: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(MapperValue.TableFieldName).AsExtended);
       tkString: RttiProperty.Prop.SetValue(Pointer(RttiProperty.Obj), aDataset.FieldByName(MapperValue.TableFieldName).AsString);
       tkSet: ;
@@ -120,6 +131,7 @@ var
   MapperValue: TMapperValue;
   ResultGetProperty : TGetProperty;
 begin
+  Result := nil;
   for MapperValue in aMapper.Items do
   begin
     if MapperValue.Mapper <> aChildMapper then
@@ -128,6 +140,40 @@ begin
     ResultGetProperty := GetProperty(aOwnerObject, MapperValue.EntityFieldName);
     Result := TObjectList<TObject>(ResultGetProperty.Prop.GetValue(Pointer(ResultGetProperty.Obj)).AsObject);
     Exit;
+  end;
+end;
+
+function TOrionORMReflection.GetEnumConvert(aEnumName: string; aObject : TObject): TValue;
+var
+  RttiType : TRttiType;
+  RttiMethod: TRttiMethod;
+begin
+  RttiType := TRttiContext.Create.GetType(aObject.ClassType);
+  for RttiMethod in RttiType.GetMethods do
+  begin
+    if RttiMethod.Name = 'ConvertToEnum' then
+    begin
+      Result := RttiMethod.Invoke(aObject, [aEnumName]);
+      Exit;
+    end;
+  end;
+end;
+
+function TOrionORMReflection.GetEnumConvert(aValue : TValue; aObject : TObject): string;
+var
+  RttiType : TRttiType;
+  RttiMethod: TRttiMethod;
+begin
+  Result := '';
+  RttiType := TRttiContext.Create.GetType(aObject.ClassType);
+  for RttiMethod in RttiType.GetMethods do
+  begin
+    if RttiMethod.Name = 'ConvertToString' then
+    begin
+      Result := GetEnumName(aValue.TypeInfo, aValue.AsOrdinal);
+//      Result := RttiMethod.Invoke(aObject.ClassType, [aValue.AsObject]).AsString;
+      Exit;
+    end;
   end;
 end;
 
@@ -266,7 +312,13 @@ begin
         else
          aDataset.FieldByName(TableFieldName).AsString := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsString;
       end;
-      tkEnumeration: aDataset.FieldByName(TableFieldName).AsBoolean := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsBoolean;
+      tkEnumeration:
+      begin
+        if RttiProperty.Prop.PropertyType.Name.ToLower = 'boolean' then
+          aDataset.FieldByName(TableFieldName).AsBoolean := RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsBoolean
+        else
+          aDataset.FieldByName(TableFieldName).AsString := GetEnumConvert(RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)), MapperValue.Enum);
+      end;
       tkFloat:
       begin
         if (IsNullIfEmpty) and (RttiProperty.Prop.GetValue(Pointer(RttiProperty.Obj)).AsExtended = 0) then
@@ -337,7 +389,6 @@ procedure TOrionORMReflection.RefreshEntityPrimaryKeysValues(aDataset: iDataset;
 var
   Keys : TKeys;
   KeysTableField : TKeys;
-  Key: string;
   RttiProperty : TGetProperty;
   I: Integer;
 //  MapperValue : TMapperValue;
