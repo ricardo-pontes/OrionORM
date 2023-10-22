@@ -70,6 +70,7 @@ type
     function GetAssociationObjectListFieldName(aMapper : iOrionORMMapper) : string;
     function GetPrimaryKeyEntityFieldName : TKeys;
     function GetPrimaryKeyTableFieldName : TKeys;
+    function GetFindKeys : TKeys;
     function GetMapperValue(aEntityFieldName : string) : TMapperValue;
     function GetOneToManyMappers : TMappers;
     function Items : TList<TMapperValue>;

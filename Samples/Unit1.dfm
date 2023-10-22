@@ -235,9 +235,9 @@ object Form1: TForm1
     Top = 177
     Width = 117
     Height = 23
-    EditLabel.Width = 63
+    EditLabel.Width = 82
     EditLabel.Height = 15
-    EditLabel.Caption = 'Postal Code'
+    EditLabel.Caption = 'Financial Status'
     ImeName = 'Portuguese (Brazilian ABNT)'
     TabOrder = 21
     Text = ''

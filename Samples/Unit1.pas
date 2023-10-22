@@ -249,7 +249,7 @@ begin
 
   Mapper.TableName := 'PEOPLES';
   Mapper.ClassType := TPerson;
-  Mapper.Add(TMapperValue.Create('ID', 'PEOPLE_ID', [PrimaryKey, AutoInc]));
+  Mapper.Add(TMapperValue.Create('ID', 'PEOPLE_ID', [PrimaryKey, FindKey, AutoInc]));
   Mapper.Add(TMapperValue.Create('Name', 'PEOPLE_NAME'));
   Mapper.Add(TMapperValue.Create('Salary', 'PEOPLE_SALARY'));
   Mapper.Add(TMapperValue.Create('Active', 'PEOPLE_ACTIVE'));

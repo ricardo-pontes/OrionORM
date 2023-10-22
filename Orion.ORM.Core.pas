@@ -123,7 +123,11 @@ var
   Mapper : iOrionORMMapper;
 begin
   ValidateMapper;
-  PrimaryKeys := FMapper.GetPrimaryKeyTableFieldName;
+  PrimaryKeys := FMapper.GetFindKeys;
+
+  if Length(PrimaryKeys) = 0 then
+    PrimaryKeys := FMapper.GetPrimaryKeyTableFieldName;
+
   OpenDataset(Dataset, PrimaryKeys, aPrimaryKeyValues);
   Result := FReflection.CreateClass(FMapper.ClassType) as T;
   try

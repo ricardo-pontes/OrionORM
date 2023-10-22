@@ -8,7 +8,7 @@ uses
   System.Rtti;
 
 type
-  TConstraint = (PrimaryKey, ForeignKey, AutoInc, NullIfEmpty, IgnoreOnSave);
+  TConstraint = (PrimaryKey, ForeignKey, FindKey, AutoInc, NullIfEmpty, IgnoreOnSave);
 
   TAssociationType = (OneToOne, OneToMany);
 
@@ -16,7 +16,7 @@ type
 
   TEnumConvert<T> = class
   private
-    FEnum : T;
+
   public
     constructor Create;
     destructor Destroy; override;

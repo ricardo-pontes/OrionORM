@@ -37,6 +37,7 @@ type
     function ContainsEmptyTableFieldName : boolean;
     function ContainsEmptyMapper : boolean;
     function GetChildObjectList(aMapper: iOrionORMMapper; aOwnerObject: TObject): TObjectList<TObject>;
+    function GetFindKeys : TKeys;
     function GetPrimaryKeyEntityFieldName : TKeys;
     function GetPrimaryKeyEntityFieldValues : TKeysValues;
     function GetPrimaryKeyTableFieldName : TKeys;
@@ -124,6 +125,25 @@ end;
 function TOrionMapper.GetClassType: TClass;
 begin
   Result := FClassType;
+end;
+
+function TOrionMapper.GetFindKeys: TKeys;
+var
+  Mapper : TMapperValue;
+begin
+  Result := [];
+  for Mapper in FItens do
+  begin
+    for var Constraint in Mapper.Constraints do
+    begin
+      if Constraint = TConstraint.FindKey then
+      begin
+        SetLength(Result, Length(Result) + 1);
+        Result[Pred(Length(Result))] := Mapper.TableFieldName;
+        Exit;
+      end;
+    end;
+  end;
 end;
 
 function TOrionMapper.GetMapperValue(aEntityFieldName: string): TMapperValue;
