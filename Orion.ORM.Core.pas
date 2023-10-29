@@ -29,6 +29,7 @@ type
     procedure SetOwnerKeyValues(aOwnerKeyFields : TKeys; var aOwnerKeyValues : TKeysValues; aDataset : iDataset);
     procedure LoadChildObjectList(aChildMapper : iOrionORMMapper; aOwnerObject : TObject; aOwnerDataset : iDataset);
     procedure SaveChildObjectList(aChildMapper : iOrionORMMapper; aOwnerObject : TObject; aOwnerDataset : iDataset);
+    procedure DeleteChildObjectLists(aOneToManyMappers : TMappers; aOwnerDataset : iDataset);
   public
     constructor Create(aCriteria : iOrionCriteria; aDBConnection : iDBConnection); overload;
     constructor Create(aCriteria : iOrionCriteria; aDBConnection : iDBConnection; aPagination : iOrionPagination); overload;
@@ -43,6 +44,7 @@ type
     procedure Save(aValue : T);
     procedure Delete(aPrimaryKeyValues : TKeysValues); overload;
     procedure Delete(aEntity : T); overload;
+    procedure Delete(aWhere : string); overload;
   end;
 
 implementation
@@ -95,18 +97,40 @@ begin
   OpenDataset(Dataset, Keys, aPrimaryKeyValues);
   OneToManyMappers := FMapper.GetOneToManyMappers;
   if Length(OneToManyMappers) > 0 then
-  begin
-    for Mapper in OneToManyMappers do
-    begin
-      Keys := FMapper.GetAssociationOwnerKeyFields(Mapper);
-      SetOwnerKeyValues(Keys, OwnerKeysValues, Dataset);
-      OpenDataset(ChildDataset, FMapper, Mapper, OwnerKeysValues);
-      ChildDataset.First;
-      while ChildDataset.RecordCount > 0 do
-        ChildDataset.Delete;
-    end;
-  end;
+    DeleteChildObjectLists(OneToManyMappers, Dataset);
+
   Dataset.Delete;
+end;
+
+procedure TOrionORMCore<T>.Delete(aWhere: string);
+var
+  Dataset : iDataset;
+  OneToManyMappers : TMappers;
+begin
+  OpenDataset(Dataset, FMapper, aWhere);
+  OneToManyMappers := FMapper.GetOneToManyMappers;
+  if Length(OneToManyMappers) > 0 then
+    DeleteChildObjectLists(OneToManyMappers, Dataset);
+
+  Dataset.Delete;
+end;
+
+procedure TOrionORMCore<T>.DeleteChildObjectLists(aOneToManyMappers : TMappers; aOwnerDataset : iDataset);
+var
+  Keys : TKeys;
+  Mapper : iOrionORMMapper;
+  OwnerKeysValues : TKeysValues;
+  ChildDataset : iDataset;
+begin
+  for Mapper in aOneToManyMappers do
+  begin
+    Keys := FMapper.GetAssociationOwnerKeyFields(Mapper);
+    SetOwnerKeyValues(Keys, OwnerKeysValues, aOwnerDataset);
+    OpenDataset(ChildDataset, FMapper, Mapper, OwnerKeysValues);
+    ChildDataset.First;
+    while ChildDataset.RecordCount > 0 do
+      ChildDataset.Delete;
+  end;
 end;
 
 destructor TOrionORMCore<T>.Destroy;

@@ -46,7 +46,8 @@ type
     function FindOneWithWhere(aWhere : string) : T;
     function FindManyWithWhere(aWhere : string) : TObjectList<T>;
     procedure Save(aValue : T);
-    procedure Delete(aPrimaryKeyValues : TKeysValues);
+    procedure Delete(aPrimaryKeyValues : TKeysValues); overload;
+    procedure Delete(aWhere : string); overload;
   end;
 
   iOrionORMMapper = interface

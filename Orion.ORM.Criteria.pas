@@ -12,6 +12,7 @@ type
   private
     function BuildBaseSelect (aMapper : iOrionORMMapper): string;
     function GetWhereClause(aKeys : TKeys; aValues : TKeysValues) : string;
+    function VarToValue (aValue : Variant): string;
   public
     class function New : iOrionCriteria;
 
@@ -90,12 +91,22 @@ var
 begin
   Result := ' WHERE ';
   for I := 0 to Pred(Length(aKeys)) do
-    Result := Result + aKeys[I] + ' = ' +  VarToStr(aValues[I]);
+    Result := Result + aKeys[I] + ' = ' +  VarToValue(aValues[I]);
 end;
 
 class function TOrionORMCriteria.New: iOrionCriteria;
 begin
   Result := Self.Create;
+end;
+
+function TOrionORMCriteria.VarToValue(aValue : Variant): string;
+begin
+  case VarType(aValue) of
+    varSmallint, varInteger, varSingle, varDouble, varCurrency, varShortInt, varByte, varWord, varLongWord, varUInt64:
+      Result := VarToStr(aValue)
+    else
+      Result := VarToStr(aValue).QuotedString;
+  end;
 end;
 
 end.
