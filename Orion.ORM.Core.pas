@@ -365,6 +365,7 @@ var
   UpdatedRecords : TDictionary<TKeysValues, boolean>;
   isEmptyDataset : boolean;
   KeyField : string;
+  isInsert : boolean;
 begin
   isEmptyDataset := False;
   OwnerKeyFields := FMapper.GetAssociationOwnerKeyFields(aChildMapper);
@@ -380,6 +381,7 @@ begin
       Dataset.Append;
       FReflection.ObjectToDataset(Obj, Dataset, aChildMapper);
       Dataset.Post;
+      FReflection.RefreshEntityPrimaryKeysValues(Dataset, Obj, aChildMapper);
     end;
   end
   else
@@ -407,14 +409,20 @@ begin
 
         if Dataset.Locate(ArrayStrToStr(ChildTableKeyFields), ChildKeyValues, [loCaseInsensitive]) then
         begin
+          isInsert := False;
           Dataset.Edit;
           UpdatedRecords.AddOrSetValue(ChildKeyValues, True);
         end
         else
+        begin
           Dataset.Append;
+          isInsert := True;
+        end;
 
         FReflection.ObjectToDataset(Obj, Dataset, aChildMapper);
         Dataset.Post;
+        if isInsert then
+          FReflection.RefreshEntityPrimaryKeysValues(Dataset, Obj, aChildMapper);
       end;
 
       for UpdatedRecord in UpdatedRecords.Keys do begin
