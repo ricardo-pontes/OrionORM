@@ -27,8 +27,8 @@ type
     procedure OpenDataset(var aDataset : iDataset; aPrimaryKeys : TKeys; aPrimaryKeysValues : TKeysValues); overload;
     procedure OpenDataset(var aDataset : iDataset; aMapper, aChildMapper : iOrionORMMapper; aOwnerKeyValues : TKeysValues); overload;
     procedure SetOwnerKeyValues(aOwnerKeyFields : TKeys; var aOwnerKeyValues : TKeysValues; aDataset : iDataset);
-    procedure LoadChildObjectList(aChildMapper : iOrionORMMapper; aOwnerObject : TObject; aOwnerDataset : iDataset);
-    procedure SaveChildObjectList(aChildMapper : iOrionORMMapper; aOwnerObject : TObject; aOwnerDataset : iDataset);
+    procedure LoadChildObjectList(aOwnerMapper, aChildMapper : iOrionORMMapper; aOwnerObject : TObject; aOwnerDataset : iDataset);
+    procedure SaveChildObjectList(aOwnerMapper, aChildMapper : iOrionORMMapper; aOwnerObject : TObject; aOwnerDataset : iDataset);
     procedure DeleteChildObjectLists(aOneToManyMappers : TMappers; aOwnerDataset : iDataset);
   public
     constructor Create(aCriteria : iOrionCriteria; aDBConnection : iDBConnection); overload;
@@ -160,7 +160,7 @@ begin
     if Length(OneToManyMappers) > 0 then
     begin
       for Mapper in OneToManyMappers do
-        LoadChildObjectList(Mapper, Result, Dataset);
+        LoadChildObjectList(FMapper, Mapper, Result, Dataset);
     end;
   except on E: Exception do
     begin
@@ -189,7 +189,7 @@ begin
       if Length(Mappers) > 0 then
       begin
         for Mapper in Mappers do
-          LoadChildObjectList(Mapper, OwnerObject, Dataset);
+          LoadChildObjectList(FMapper, Mapper, OwnerObject, Dataset);
       end;
       FReflection.IncObjectInList<T>(Result, OwnerObject);
       Dataset.Next;
@@ -221,7 +221,7 @@ begin
       if Length(Mappers) > 0 then
       begin
         for Mapper in Mappers do
-          LoadChildObjectList(Mapper, OwnerObject, Dataset);
+          LoadChildObjectList(FMapper, Mapper, OwnerObject, Dataset);
       end;
       FReflection.IncObjectInList<T>(Result, OwnerObject);
       Dataset.Next;
@@ -249,7 +249,7 @@ begin
     if Length(Mappers) > 0 then
     begin
       for Mapper in Mappers do
-        LoadChildObjectList(Mapper, Result, Dataset);
+        LoadChildObjectList(FMapper, Mapper, Result, Dataset);
     end;
   except on E: Exception do
     begin
@@ -259,22 +259,30 @@ begin
   end;
 end;
 
-procedure TOrionORMCore<T>.LoadChildObjectList(aChildMapper : iOrionORMMapper; aOwnerObject : TObject; aOwnerDataset : iDataset);
+procedure TOrionORMCore<T>.LoadChildObjectList(aOwnerMapper, aChildMapper : iOrionORMMapper; aOwnerObject : TObject; aOwnerDataset : iDataset);
 var
   OwnerKeyFields : TKeys;
   OwnerKeyValues : TKeysValues;
   Dataset : iDataset;
+  OneToManyMappers : TMappers;
+  Mapper : iOrionORMMapper;
 begin
-  OwnerKeyFields := FMapper.GetAssociationOwnerKeyFields(aChildMapper);
+  OwnerKeyFields := aOwnerMapper.GetAssociationOwnerKeyFields(aChildMapper);
   SetOwnerKeyValues(OwnerKeyFields, OwnerKeyValues, aOwnerDataset);
-  OpenDataset(Dataset, FMapper, aChildMapper, OwnerKeyValues);
-  FReflection.ClearList(FMapper.GetAssociationObjectListFieldName(aChildMapper), aOwnerObject);
+  OpenDataset(Dataset, aOwnerMapper, aChildMapper, OwnerKeyValues);
+  FReflection.ClearList(aOwnerMapper.GetAssociationObjectListFieldName(aChildMapper), aOwnerObject);
   Dataset.First;
   while not Dataset.Eof do
   begin
     var ChildObject := FReflection.CreateClass(aChildMapper.ClassType);
     FReflection.DatasetToObject(Dataset, ChildObject, aChildMapper);
-    FReflection.IncObjectInList(FMapper.GetAssociationObjectListFieldName(aChildMapper), aOwnerObject, ChildObject);
+    OneToManyMappers := aChildMapper.GetOneToManyMappers;
+    if Length(OneToManyMappers) > 0 then
+    begin
+      for Mapper in OneToManyMappers do
+        LoadChildObjectList(aChildMapper, Mapper, ChildObject, Dataset);
+    end;
+    FReflection.IncObjectInList(aOwnerMapper.GetAssociationObjectListFieldName(aChildMapper), aOwnerObject, ChildObject);
     Dataset.Next;
   end;
 end;
@@ -351,11 +359,11 @@ begin
   if Length(Mappers) > 0 then
   begin
     for Mapper in Mappers do
-      SaveChildObjectList(Mapper, aValue, Dataset);
+      SaveChildObjectList(FMapper, Mapper, aValue, Dataset);
   end;
 end;
 
-procedure TOrionORMCore<T>.SaveChildObjectList(aChildMapper: iOrionORMMapper; aOwnerObject: TObject; aOwnerDataset: iDataset);
+procedure TOrionORMCore<T>.SaveChildObjectList(aOwnerMapper, aChildMapper: iOrionORMMapper; aOwnerObject: TObject; aOwnerDataset: iDataset);
 var
   OwnerKeyFields, ChildTableKeyFields, ChildKeyFields : TKeys;
   OwnerKeyValues, ChildTableKeyValues, ChildKeyValues, UpdatedRecord : TKeysValues;
@@ -366,13 +374,14 @@ var
   isEmptyDataset : boolean;
   KeyField : string;
   isInsert : boolean;
+  OneToManyMappers : TMappers;
 begin
   isEmptyDataset := False;
-  OwnerKeyFields := FMapper.GetAssociationOwnerKeyFields(aChildMapper);
+  OwnerKeyFields := aOwnerMapper.GetAssociationOwnerKeyFields(aChildMapper);
   SetOwnerKeyValues(OwnerKeyFields, OwnerKeyValues, aOwnerDataset);
-  OpenDataset(Dataset, FMapper, aChildMapper, OwnerKeyValues);
+  OpenDataset(Dataset, aOwnerMapper, aChildMapper, OwnerKeyValues);
   isEmptyDataset := Dataset.RecordCount = 0;
-  ObjectList := FReflection.GetChildObjectList(FMapper, aChildMapper, aOwnerObject);
+  ObjectList := FReflection.GetChildObjectList(aOwnerMapper, aChildMapper, aOwnerObject);
 
   if isEmptyDataset then
   begin
@@ -382,6 +391,10 @@ begin
       FReflection.ObjectToDataset(Obj, Dataset, aChildMapper);
       Dataset.Post;
       FReflection.RefreshEntityPrimaryKeysValues(Dataset, Obj, aChildMapper);
+
+      OneToManyMappers := aOwnerMapper.GetOneToManyMappers;
+      for var Mapper in OneToManyMappers do
+        SaveChildObjectList(aChildMapper, Mapper, Obj, Dataset);
     end;
   end
   else
@@ -423,6 +436,10 @@ begin
         Dataset.Post;
         if isInsert then
           FReflection.RefreshEntityPrimaryKeysValues(Dataset, Obj, aChildMapper);
+
+        OneToManyMappers := aOwnerMapper.GetOneToManyMappers;
+        for var Mapper in OneToManyMappers do
+          SaveChildObjectList(aChildMapper, Mapper, Obj, Dataset);
       end;
 
       for UpdatedRecord in UpdatedRecords.Keys do begin
