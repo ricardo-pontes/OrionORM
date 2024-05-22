@@ -125,8 +125,8 @@ begin
   if FDBConnection.InTransaction then
     FDBConnection.Rollback;
   FDBConnection.Connected := False;
-  FDBConnection.DisposeOf;
-  FDriverLink.DisposeOf;
+  FreeAndNil(FDBConnection);
+  FreeAndNil(FDriverLink);
   inherited;
 end;
 

@@ -3,7 +3,7 @@ object Form1: TForm1
   Top = 0
   Caption = 'Form1'
   ClientHeight = 552
-  ClientWidth = 801
+  ClientWidth = 900
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -13,11 +13,11 @@ object Form1: TForm1
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   DesignSize = (
-    801
+    900
     552)
   TextHeight = 15
   object Button1: TButton
-    Left = 533
+    Left = 597
     Top = 24
     Width = 75
     Height = 25
@@ -123,12 +123,11 @@ object Form1: TForm1
   object Memo1: TMemo
     Left = 23
     Top = 273
-    Width = 758
+    Width = 857
     Height = 72
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 10
-    ExplicitWidth = 754
-    ExplicitHeight = 71
+    ExplicitWidth = 758
   end
   object Button2: TButton
     Left = 452
@@ -169,7 +168,7 @@ object Form1: TForm1
     OnClick = Button4Click
   end
   object Button5: TButton
-    Left = 675
+    Left = 739
     Top = 24
     Width = 47
     Height = 25
@@ -178,7 +177,7 @@ object Form1: TForm1
     OnClick = Button5Click
   end
   object LabeledEdit2: TLabeledEdit
-    Left = 614
+    Left = 678
     Top = 24
     Width = 55
     Height = 23
@@ -189,7 +188,7 @@ object Form1: TForm1
     Text = ''
   end
   object Button6: TButton
-    Left = 728
+    Left = 792
     Top = 24
     Width = 47
     Height = 25
@@ -200,15 +199,14 @@ object Form1: TForm1
   object StringGridContacts: TStringGrid
     Left = 23
     Top = 400
-    Width = 758
+    Width = 857
     Height = 129
     Anchors = [akLeft, akRight, akBottom]
     ColCount = 3
     FixedCols = 0
     FixedRows = 0
     TabOrder = 18
-    ExplicitTop = 399
-    ExplicitWidth = 754
+    ExplicitWidth = 758
   end
   object EditPhoneNumber: TLabeledEdit
     Left = 23
@@ -241,5 +239,16 @@ object Form1: TForm1
     ImeName = 'Portuguese (Brazilian ABNT)'
     TabOrder = 21
     Text = ''
+  end
+  object LabeledEditPage: TLabeledEdit
+    Left = 533
+    Top = 24
+    Width = 55
+    Height = 23
+    EditLabel.Width = 26
+    EditLabel.Height = 15
+    EditLabel.Caption = 'Page'
+    TabOrder = 22
+    Text = '1'
   end
 end

@@ -22,6 +22,7 @@ uses
   Orion.ORM.Types,
   Orion.ORM.DBConnection.FireDAC.SQLite,
   Orion.ORM.Criteria,
+  Orion.ORM.Pagination.SQLite,
   Entity,
   Vcl.StdCtrls, Vcl.WinXCtrls, Vcl.Mask, Vcl.ExtCtrls, Vcl.Grids;
 
@@ -55,6 +56,7 @@ type
     EditPhoneNumber: TLabeledEdit;
     Button7: TButton;
     EditFinancialStatus: TLabeledEdit;
+    LabeledEditPage: TLabeledEdit;
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
@@ -115,6 +117,8 @@ var
   Persons : TObjectList<TPerson>;
   Person: TPerson;
 begin
+  FOrionORM.Pagination.PageSize := 5;
+  FOrionORM.Pagination.Page := StrToInt(LabeledEditPage.Text);
   Persons := FOrionORM.Find;
   try
     Memo1.Lines.Clear;
@@ -237,7 +241,7 @@ begin
   StringGridConfiguration;
   DBConnection := TOrionORMDBConnectionFiredacSQLite.New;
   DBConnection.Configurations(ExtractFileDir(GetCurrentDir) + 'dbteste.sqlite3', '', '', '', 0);
-  FOrionORM := TOrionORM<TPerson>.New(DBConnection);
+  FOrionORM := TOrionORM<TPerson>.New(DBConnection, TOrionPaginationSQLite.New);
   var Mapper := TOrionMapper.New;
   var MapperContacts := TOrionMapper.New;
 
@@ -260,6 +264,7 @@ begin
   Mapper.Add(TMapperValue.Create('Address.City', 'PEOPLE_CITY'));
   Mapper.Add(TMapperValue.Create('Address.PostalCode', 'PEOPLE_POSTAL_CODE'));
   Mapper.Add(TMapperValue.Create('Contacts', MapperContacts, TAssociation.Create(OneToMany, ['PEOPLE_ID'], ['PC_PEOPLE_ID'])));
+  Mapper.OrderBy := 'PEOPLE_NAME';
   FOrionORM.Mapper(Mapper);
 end;
 

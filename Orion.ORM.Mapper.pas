@@ -17,6 +17,7 @@ type
     FItens : TList<TMapperValue>;
     FJoins : TList<string>;
     FTableName : string;
+    FOrderby : string;
   private
     procedure SetPagination(const aValue : iOrionPagination);
     function GetPagination : iOrionPagination;
@@ -24,6 +25,8 @@ type
     function GetTableName : string;
     procedure SetClassType(const aValue : TClass); overload;
     function GetClassType : TClass; overload;
+    procedure SetOrderBy(const aValue : string);
+    function GetOrderBy : string;
   public
     constructor Create;
     destructor Destroy; override;
@@ -51,13 +54,14 @@ type
   public
     property TableName: string read GetTableName write SetTableName;
     property Pagination: iOrionPagination read GetPagination write SetPagination;
+    property OrderBy : string read GetOrderBy write SetOrderBy;
+
   end;
 
 implementation
 
 { TOrionMapper }
 
-uses Orion.ORM.Pagination;
 
 procedure TOrionMapper.Add(aMapperValue: TMapperValue);
 begin
@@ -165,6 +169,11 @@ begin
   FClassType := aValue;
 end;
 
+procedure TOrionMapper.SetOrderBy(const aValue: string);
+begin
+  FOrderBy := aValue;
+end;
+
 procedure TOrionMapper.AddJoin(aValue: string);
 begin
   if not FJoins.Contains(aValue) then
@@ -238,7 +247,6 @@ constructor TOrionMapper.Create;
 begin
   FItens := TList<TMapperValue>.Create;
   FJoins := TList<string>.Create;
-  FPagination := TOrionPagination.New;
 end;
 
 destructor TOrionMapper.Destroy;
@@ -248,8 +256,8 @@ begin
   for Item in FItens do
     Item.Destroy;
 
-  FItens.DisposeOf;
-  FJoins.DisposeOf;
+  FreeAndNil(FItens);
+  FreeAndNil(FJoins);
   inherited;
 end;
 
@@ -266,6 +274,11 @@ begin
       Result[Pred(Length(Result))] := Mapper.Mapper;
     end;
   end;
+end;
+
+function TOrionMapper.GetOrderBy: string;
+begin
+  Result := FOrderBy;
 end;
 
 function TOrionMapper.GetPagination: iOrionPagination;

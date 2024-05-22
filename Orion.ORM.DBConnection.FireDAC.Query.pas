@@ -105,7 +105,7 @@ begin
 end;
 destructor TFiredacQuery.Destroy;
 begin
-  FDBQuery.DisposeOf;
+  FreeAndNil(FDBQuery);
   inherited;
 end;
 procedure TFiredacQuery.Edit;

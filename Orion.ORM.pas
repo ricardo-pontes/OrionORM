@@ -3,6 +3,7 @@ unit Orion.ORM;
 interface
 
 uses
+  System.SysUtils,
   System.Generics.Collections,
   Orion.ORM.Interfaces,
   Orion.ORM.DB.Interfaces, Orion.ORM.Core, Orion.ORM.Criteria;
@@ -26,6 +27,7 @@ type
     procedure Save(aValue : T);
     procedure Delete(aPrimaryKeyValues : TKeysValues); overload;
     procedure Delete(aWhere : string); overload;
+    function Pagination : iOrionPagination;
   end;
 
 implementation
@@ -39,7 +41,7 @@ end;
 
 constructor TOrionORM<T>.Create(aDBConnection: iDBConnection; aPagination: iOrionPagination);
 begin
-  FCore := TOrionORMCore<T>.Create(TOrionORMCriteria.New, aDBConnection);
+  FCore := TOrionORMCore<T>.Create(TOrionORMCriteria.New, aDBConnection, aPagination);
 end;
 
 procedure TOrionORM<T>.Delete(aPrimaryKeyValues : TKeysValues);
@@ -54,7 +56,7 @@ end;
 
 destructor TOrionORM<T>.Destroy;
 begin
-  FCore.DisposeOf;
+  FreeAndNil(FCore);
   inherited;
 end;
 
@@ -91,6 +93,11 @@ end;
 class function TOrionORM<T>.New(aDBConnection: iDBConnection; aPagination: iOrionPagination): iOrionORM<T>;
 begin
   Result := Self.Create(aDBConnection, aPagination);
+end;
+
+function TOrionORM<T>.Pagination: iOrionPagination;
+begin
+  Result := FCore.Pagination;
 end;
 
 class function TOrionORM<T>.New(aDBConnection : iDBConnection): iOrionORM<T>;

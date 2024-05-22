@@ -16,8 +16,8 @@ type
   public
     class function New : iOrionCriteria;
 
-    function BuildSelect(aMapper : iOrionORMMapper; aWhere : string = '') : string; overload;
-    function BuildSelect(aMapper : iOrionORMMapper; aKeys : TKeys; aValues : TKeysValues) : string; overload;
+    function BuildSelect(aMapper : iOrionORMMapper; aWhere : string = ''; aPagination : iOrionPagination = nil) : string; overload;
+    function BuildSelect(aMapper : iOrionORMMapper; aKeys : TKeys; aValues : TKeysValues; aPagination : iOrionPagination) : string; overload;
     function BuildDelete(aMapper : iOrionORMMapper) : TSelects;
   end;
 
@@ -59,7 +59,7 @@ begin
 
 end;
 
-function TOrionORMCriteria.BuildSelect(aMapper: iOrionORMMapper; aKeys: TKeys; aValues: TKeysValues): string;
+function TOrionORMCriteria.BuildSelect(aMapper: iOrionORMMapper; aKeys: TKeys; aValues: TKeysValues; aPagination : iOrionPagination): string;
 var
   Select : string;
 begin
@@ -69,20 +69,33 @@ begin
 
   Select := BuildBaseSelect(aMapper);
   Select := Select + GetWhereClause(aKeys, aValues);
+
+  if aMapper.OrderBy <> '' then
+    Result := Result + ' ORDER BY ' + aMapper.OrderBy;
+
+  if Assigned(aPagination) then
+    Select := Select + aPagination.Result;
+
   Result := Select;
 
 end;
 
-function TOrionORMCriteria.BuildSelect(aMapper: iOrionORMMapper; aWhere : string): string;
+function TOrionORMCriteria.BuildSelect(aMapper: iOrionORMMapper; aWhere : string; aPagination : iOrionPagination): string;
 begin
   Result := '';
   if aMapper.Items.Count = 0 then
     Exit;
 
   Result := BuildBaseSelect(aMapper);
-
   if aWhere <> '' then
     Result := Result + ' WHERE ' + aWhere;
+
+  if aMapper.OrderBy <> '' then
+    Result := Result + ' ORDER BY ' + aMapper.OrderBy;
+
+  if Assigned(aPagination) then
+    Result := Result + aPagination.Result;
+
 end;
 
 function TOrionORMCriteria.GetWhereClause(aKeys: TKeys; aValues: TKeysValues): string;

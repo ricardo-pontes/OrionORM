@@ -45,7 +45,7 @@ contains
   Orion.ORM.Interfaces in 'Orion.ORM.Interfaces.pas',
   Orion.ORM.Reflection in 'Orion.ORM.Reflection.pas',
   Orion.ORM.DB.Interfaces in 'Orion.ORM.DB.Interfaces.pas',
-  Orion.ORM.Pagination in 'Orion.ORM.Pagination.pas',
+  Orion.ORM.Pagination.Firebird in 'Orion.ORM.Pagination.Firebird.pas',
   Orion.ORM.Mapper in 'Orion.ORM.Mapper.pas',
   Orion.ORM.Core in 'Orion.ORM.Core.pas',
   Orion.ORM.DBConnection.FireDAC.Firebird in 'Orion.ORM.DBConnection.FireDAC.Firebird.pas',
@@ -53,7 +53,8 @@ contains
   Orion.ORM.DBConnection.FireDAC.SQLite in 'Orion.ORM.DBConnection.FireDAC.SQLite.pas',
   Orion.ORM.Criteria in 'Orion.ORM.Criteria.pas',
   Orion.ORM.Utils in 'Orion.ORM.Utils.pas',
-  Orion.ORM in 'Orion.ORM.pas';
+  Orion.ORM in 'Orion.ORM.pas',
+  Orion.ORM.Pagination.SQLite in 'Orion.ORM.Pagination.SQLite.pas';
 
 end.
 

@@ -45,6 +45,7 @@ type
     procedure Delete(aPrimaryKeyValues : TKeysValues); overload;
     procedure Delete(aEntity : T); overload;
     procedure Delete(aWhere : string); overload;
+    function Pagination : iOrionPagination;
   end;
 
 implementation
@@ -88,10 +89,8 @@ end;
 procedure TOrionORMCore<T>.Delete(aPrimaryKeyValues : TKeysValues);
 var
   Keys : TKeys;
-  Dataset, ChildDataset : iDataset;
+  Dataset : iDataset;
   OneToManyMappers : TMappers;
-  Mapper : iOrionORMMapper;
-  OwnerKeysValues : TKeysValues;
 begin
   Keys := FMapper.GetPrimaryKeyTableFieldName;
   OpenDataset(Dataset, Keys, aPrimaryKeyValues);
@@ -135,7 +134,7 @@ end;
 
 destructor TOrionORMCore<T>.Destroy;
 begin
-  FReflection.DisposeOf;
+  FreeAndNil(FReflection);
   inherited;
 end;
 
@@ -163,10 +162,7 @@ begin
         LoadChildObjectList(FMapper, Mapper, Result, Dataset);
     end;
   except on E: Exception do
-    begin
-      Result.DisposeOf;
-      Result := nil;
-    end;
+    FreeAndNil(Result);
   end;
 end;
 
@@ -195,10 +191,7 @@ begin
       Dataset.Next;
     end;
   except on E: Exception do
-    begin
-      Result.DisposeOf;
-      Result := nil;
-    end;
+    FreeAndNil(Result);
   end;
 end;
 
@@ -227,10 +220,7 @@ begin
       Dataset.Next;
     end;
   except on E: Exception do
-    begin
-      Result.DisposeOf;
-      Result := nil;
-    end;
+    FreeAndNil(Result);
   end;
 end;
 
@@ -252,10 +242,7 @@ begin
         LoadChildObjectList(FMapper, Mapper, Result, Dataset);
     end;
   except on E: Exception do
-    begin
-      Result.DisposeOf;
-      Result := nil;
-    end;
+    FreeAndNil(Result);
   end;
 end;
 
@@ -288,8 +275,6 @@ begin
 end;
 
 procedure TOrionORMCore<T>.Mapper(aValue: iOrionORMMapper);
-var
-  Mapper: TObject;
 begin
   FMapper := aValue;
   if FMapper.ClassType = nil then
@@ -306,7 +291,7 @@ var
   Select : string;
 begin
   aDataset := FDBConnection.NewDataset;
-  Select := FCriteria.BuildSelect(FMapper, aPrimaryKeys, aPrimaryKeysValues);
+  Select := FCriteria.BuildSelect(FMapper, aPrimaryKeys, aPrimaryKeysValues, FPagination);
   aDataset.Statement(Select);
   aDataset.Open;
 end;
@@ -315,17 +300,22 @@ procedure TOrionORMCore<T>.OpenDataset(var aDataset: iDataset; aMapper, aChildMa
 var
   Select : string;
 begin
-  Select := FCriteria.BuildSelect(aChildMapper, aMapper.GetAssociationChildKeyFields(aChildMapper), aOwnerKeyValues);
+  Select := FCriteria.BuildSelect(aChildMapper, aMapper.GetAssociationChildKeyFields(aChildMapper), aOwnerKeyValues, aChildMapper.Pagination);
   aDataset := FDBConnection.NewDataset;
   aDataset.Statement(Select);
   aDataset.Open;
+end;
+
+function TOrionORMCore<T>.Pagination: iOrionPagination;
+begin
+  Result := FPagination;
 end;
 
 procedure TOrionORMCore<T>.OpenDataset(var aDataset : iDataset; aMapper : iOrionORMMapper; aWhere : string);
 var
   Select : string;
 begin
-  Select := FCriteria.BuildSelect(aMapper, aWhere);
+  Select := FCriteria.BuildSelect(aMapper, aWhere, FPagination);
   aDataset := FDBConnection.NewDataset;
   aDataset.Statement(Select);
   aDataset.Open;
@@ -337,7 +327,6 @@ var
   PrimaryKeys : TKeys;
   TableKeys : TKeys;
   KeysValues : TKeysValues;
-  OneToManyMappers : TMappers;
   Mapper : iOrionORMMapper;
   Mappers : TMappers;
 begin
@@ -371,19 +360,16 @@ var
   ObjectList : TObjectList<TObject>;
   Obj : TObject;
   UpdatedRecords : TDictionary<TKeysValues, boolean>;
-  isEmptyDataset : boolean;
   KeyField : string;
   isInsert : boolean;
   OneToManyMappers : TMappers;
 begin
-  isEmptyDataset := False;
   OwnerKeyFields := aOwnerMapper.GetAssociationOwnerKeyFields(aChildMapper);
   SetOwnerKeyValues(OwnerKeyFields, OwnerKeyValues, aOwnerDataset);
   OpenDataset(Dataset, aOwnerMapper, aChildMapper, OwnerKeyValues);
-  isEmptyDataset := Dataset.RecordCount = 0;
   ObjectList := FReflection.GetChildObjectList(aOwnerMapper, aChildMapper, aOwnerObject);
 
-  if isEmptyDataset then
+  if Dataset.RecordCount = 0 then
   begin
     for Obj in ObjectList do
     begin
@@ -449,7 +435,7 @@ begin
         end;
       end;
     finally
-      UpdatedRecords.DisposeOf;
+      FreeAndNil(UpdatedRecords);
     end;
   end;
 end;

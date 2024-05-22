@@ -48,6 +48,7 @@ type
     procedure Save(aValue : T);
     procedure Delete(aPrimaryKeyValues : TKeysValues); overload;
     procedure Delete(aWhere : string); overload;
+    function Pagination : iOrionPagination;
   end;
 
   iOrionORMMapper = interface
@@ -80,6 +81,10 @@ type
     procedure SetPagination(const aValue : iOrionPagination);
     function GetPagination : iOrionPagination;
     property Pagination: iOrionPagination read GetPagination write SetPagination;
+
+    procedure SetOrderBy(const aValue : string);
+    function GetOrderBy : string;
+    property OrderBy : string read GetOrderBy write SetOrderBy;
   end;
 
   iOrionPagination = interface
@@ -91,13 +96,14 @@ type
     procedure SetPage(const aValue : integer);
     function GetPage : integer;
     property Page: integer read GetPage write SetPage;
+    function Result : string;
   end;
 
   iOrionCriteria = interface
     ['{E3B6FDF1-FBA5-4B65-B844-17CAC51B2535}']
-    function BuildSelect(aMapper : iOrionORMMapper; aWhere : string = '') : string; overload;
+    function BuildSelect(aMapper : iOrionORMMapper; aWhere : string = ''; aPagination : iOrionPagination = nil) : string; overload;
 //    function BuildSelect(aMapper : iOrionORMMapper; aWhere : string) : TSelects; overload;
-    function BuildSelect(aMapper : iOrionORMMapper; aKeys : TKeys; aValues : TKeysValues) : string; overload;
+    function BuildSelect(aMapper : iOrionORMMapper; aKeys : TKeys; aValues : TKeysValues; aPagination : iOrionPagination) : string; overload;
     function BuildDelete(aMapper : iOrionORMMapper) : TSelects;
   end;
 
@@ -124,7 +130,7 @@ end;
 procedure TMapperValue.Destroy;
 begin
   if Assigned(Enum) then
-    Enum.DisposeOf;
+    FreeAndNil(Enum);
 end;
 
 class function TMapperValue.Create(aEntityFieldName, aTableFieldName: string; aConstraints: TConstraints): TMapperValue;
