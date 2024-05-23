@@ -64,42 +64,44 @@ Instancie uma variável do ORM para começar a configurar (a paginação é um p
   FOrionORM.Mapper(Mapper);
 ```
 `DBConnection` Interface de conexão com o banco de dados;
+
 `FOrionORM` interface do ORM que irá trabalhar com a classe;
+
 `Mapper` interface de mapeamento da classe;
 
 Feito isto, o ORM está pronto para uso;
 
-##Operações
-####Find
+## Operações
+#### Find
 O Find tem 2 sobrecargas, podendo ser utilizado tanto na obtenção de um único registro podendo ser obtido por um ou mais parâmetros, como na obtenção de todos sem passar parâmetros;
 ```
   People := FOrionORM.Find([1]);
   Peoples := FOrionORM.Find;
 ```
-####FindOneWithWhere
+#### FindOneWithWhere
 O FindOneWithWhere é utilizado para obter um único registro, porém de forma mais flexível, através de cláusula where;
 ```
   Person := FOrionORM.FindOneWithWhere('SUA CLAUSULA WHERE AQUI');
 ```
 
-####FindManyWithWhere
+#### FindManyWithWhere
 O FindManyWithWhere é utilizado para obter vários registros, porém de forma mais flexível, através de cláusula where;
 ```
   Persons := FOrionORM.FindManyWithWhere('SUA CLAUSULA WHERE AQUI');
 ```
-####Save
+#### Save
 O Save é utilizado para persistir os dados no banco, e ele persistirá tanto as alterações no registro mestre, quanto nos registros detalhe;
 ```
   FOrionORM.Save(FPerson);
 ```
 
-####Delete
+#### Delete
 O Delete tem 2 sobrecargas, podendo ser utilizado para a deleção de um único registro por um ou mais parâmetros, como na deleção por cláusula where;
 ```
   FOrionORM.Delete([1]);
   FOrionORM.Delete('SUA CLAUSULA WHERE AQUI');
 ```
-####Paginação
+#### Paginação
 Para se trabalhar com paginação é muito simples, basta utilizar a interface de paginação e fazer o controle de tamanho de página e em qual página você quer obter os dados;
 ```
   FOrionORM.Pagination.PageSize := 5;
