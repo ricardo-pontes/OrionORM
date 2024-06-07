@@ -423,7 +423,7 @@ begin
         if isInsert then
           FReflection.RefreshEntityPrimaryKeysValues(Dataset, Obj, aChildMapper);
 
-        OneToManyMappers := aOwnerMapper.GetOneToManyMappers;
+        OneToManyMappers := aChildMapper.GetOneToManyMappers;
         for var Mapper in OneToManyMappers do
           SaveChildObjectList(aChildMapper, Mapper, Obj, Dataset);
       end;
@@ -447,7 +447,14 @@ begin
   for Key in aOwnerKeyFields do
   begin
     SetLength(aOwnerKeyValues, Length(aOwnerKeyValues) + 1);
-    aOwnerKeyValues[Pred(Length(aOwnerKeyValues))] := aDataset.FieldByName(Key).AsVariant;
+    case aDataset.FieldByName(Key).DataType of
+      ftString, ftWideString : aOwnerKeyValues[Pred(Length(aOwnerKeyValues))] := aDataset.FieldByName(Key).AsString;
+      ftSmallint, ftInteger : aOwnerKeyValues[Pred(Length(aOwnerKeyValues))] := aDataset.FieldByName(Key).AsInteger;
+      ftLargeint : aOwnerKeyValues[Pred(Length(aOwnerKeyValues))] := aDataset.FieldByName(Key).AsLargeInt;
+      else
+        aOwnerKeyValues[Pred(Length(aOwnerKeyValues))] := aDataset.FieldByName(Key).AsVariant;
+    end;
+//    aOwnerKeyValues[Pred(Length(aOwnerKeyValues))] := aDataset.FieldByName(Key).AsVariant;
   end;
 end;
 
