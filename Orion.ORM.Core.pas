@@ -448,8 +448,8 @@ begin
   begin
     SetLength(aOwnerKeyValues, Length(aOwnerKeyValues) + 1);
     case aDataset.FieldByName(Key).DataType of
-      ftString, ftWideString : aOwnerKeyValues[Pred(Length(aOwnerKeyValues))] := aDataset.FieldByName(Key).AsString;
-      ftSmallint, ftInteger : aOwnerKeyValues[Pred(Length(aOwnerKeyValues))] := aDataset.FieldByName(Key).AsInteger;
+      ftString, ftFixedChar, ftWideString : aOwnerKeyValues[Pred(Length(aOwnerKeyValues))] := aDataset.FieldByName(Key).AsString;
+      ftInteger, ftSmallint : aOwnerKeyValues[Pred(Length(aOwnerKeyValues))] := aDataset.FieldByName(Key).AsInteger;
       ftLargeint : aOwnerKeyValues[Pred(Length(aOwnerKeyValues))] := aDataset.FieldByName(Key).AsLargeInt;
       else
         aOwnerKeyValues[Pred(Length(aOwnerKeyValues))] := aDataset.FieldByName(Key).AsVariant;
