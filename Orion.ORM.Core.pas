@@ -378,7 +378,7 @@ begin
       Dataset.Post;
       FReflection.RefreshEntityPrimaryKeysValues(Dataset, Obj, aChildMapper);
 
-      OneToManyMappers := aOwnerMapper.GetOneToManyMappers;
+      OneToManyMappers := aChildMapper.GetOneToManyMappers;
       for var Mapper in OneToManyMappers do
         SaveChildObjectList(aChildMapper, Mapper, Obj, Dataset);
     end;

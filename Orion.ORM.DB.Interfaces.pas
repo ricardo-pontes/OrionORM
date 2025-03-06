@@ -40,11 +40,11 @@ type
     procedure Port(aValue : integer); overload;
   end;
 
-  iConexaoFactory = interface
-    function Conexao : iDBConnection;
-    procedure Commit;
-    procedure Rollback;
-  end;
+//  iConexaoFactory = interface
+//    function Conexao : iDBConnection;
+//    procedure Commit;
+//    procedure Rollback;
+//  end;
 
   iDataset = interface
     ['{AAA85BEC-5C3B-48F5-8D95-140622DA0E0B}']
